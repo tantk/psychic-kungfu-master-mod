@@ -6,6 +6,12 @@ A MelonLoader-based cheat mod for **今古群侠传 (JinGu)** by 金十四工作
 
 > **Compatibility:** tested against JinGu Steam build of 2026-05-18 with MelonLoader 0.7.3.
 
+## Screenshots
+
+| 主公 Self · stats + XP + reputation | 物品 Items · 948-item browser | 角色 NPCs · editor grid |
+|:---:|:---:|:---:|
+| ![Self tab — six pillars, direct XP sliders, rate-boost toggle, leader card](screenshot/01-self-stats.png) | ![Items tab — full item browser with category filter and sortable columns](screenshot/02-items-browser.png) | ![NPCs tab — editor grid filtered by faction](screenshot/03-npc-editor.png) |
+
 ## Features
 
 ### 主公 / Self

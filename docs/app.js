@@ -44,6 +44,22 @@ const ITEM_TYPE2S = [
 const TYPE_NAME = Object.fromEntries(ITEM_TYPES.map(t => [t.id, t.name]));
 const TYPE2_NAME = Object.fromEntries(ITEM_TYPE2S.map(t => [t.id, t.name]));
 
+// WuXueType enum (decomp/DBLoad/WuXueType.cs). The wuxue.json `type` field
+// uses these ints. 0 = "All" is a marker the game uses for templates; we
+// surface it as 全部 (untyped) to keep the count honest.
+const WUXUE_TYPE_NAME = {
+  0: "全部 / Untyped",
+  1: "刀 Saber",
+  2: "剑 Sword",
+  3: "拳 Fist & Palm",
+  4: "枪 Spear & Staff",
+  5: "暗器 Hidden Weapon",
+  6: "琴 Instrument",
+  7: "心法 Inner Cultivation",
+  8: "外功 External / Defense",
+  9: "轻功 Light-step / Movement",
+};
+
 // Gift category names — keyed by gift.m_type / npc.giftTypePrefer values (1-9)
 const GIFT_TYPE_NAME = {
   1: "料理 Cuisine", 2: "酒 Wine", 3: "茶 Tea",
@@ -82,7 +98,7 @@ let bookById = null;
 let charById = null;
 
 async function loadAll() {
-  const tables = ["item", "gift", "npc", "character", "book"];
+  const tables = ["item", "gift", "npc", "character", "book", "wuxue"];
   const loaded = await Promise.all(tables.map(t =>
     fetch(`data/${t}.json`).then(r => {
       if (!r.ok) throw new Error(`${t}.json: ${r.status}`);
@@ -332,6 +348,124 @@ function bindGifts() {
 }
 
 // =========================================================================
+// Wuxue (Martial Arts) panel: type-filtered, sortable manual browser.
+// Cross-references item.json for the display name (each wuxue id is also a
+// valid item id, so the localized name lives there).
+// =========================================================================
+const WUXUE_COLUMNS = ["id", "name", "type", "lvMax", "exp", "desc"];
+// type sentinel: -1 = show all (default), 0..9 = match exact WuXueType
+const wuxue = { type: -1, q: "", sortKey: null, sortDir: "asc", filtered: [] };
+
+function wuxueDisplayName(row) {
+  return itemById?.[row.id]?.name || `#${row.id}`;
+}
+
+function applyWuxueFilter() {
+  const q = wuxue.q.toLowerCase().trim();
+  let rows = data.wuxue.map(r => ({ ...r, name: wuxueDisplayName(r) }));
+  rows = rows.filter(r => {
+    if (wuxue.type !== -1 && r.type !== wuxue.type) return false;
+    if (!q) return true;
+    for (const v of [r.id, r.name, r.desc, WUXUE_TYPE_NAME[r.type]]) {
+      if (v != null && String(v).toLowerCase().includes(q)) return true;
+    }
+    return false;
+  });
+  if (wuxue.sortKey) {
+    const sign = wuxue.sortDir === "asc" ? 1 : -1;
+    const k = wuxue.sortKey;
+    rows = [...rows].sort((a, b) => {
+      const va = a[k], vb = b[k];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * sign;
+      return String(va).localeCompare(String(vb), undefined, { numeric: true }) * sign;
+    });
+  }
+  wuxue.filtered = rows;
+  renderWuxueRows(rows);
+  $("#wuxue-count").textContent = rows.length === data.wuxue.length
+    ? `${rows.length} 本`
+    : `${rows.length}/${data.wuxue.length} 本`;
+}
+
+function renderWuxueRows(rows) {
+  $("#wuxue-head").innerHTML = WUXUE_COLUMNS.map(c => {
+    const active = c === wuxue.sortKey;
+    const arrow = active ? (wuxue.sortDir === "asc" ? " ▲" : " ▼") : "";
+    return `<th data-col="${c}"${active ? ' class="sorted"' : ""}>${c}${arrow}</th>`;
+  }).join("");
+  const body = $("#wuxue-body");
+  body.innerHTML = "";
+  $("#wuxue-empty").hidden = rows.length > 0;
+  rows.slice(0, MAX_ROWS).forEach((row, idx) => {
+    const tr = document.createElement("tr");
+    tr.dataset.idx = idx;
+    for (const c of WUXUE_COLUMNS) {
+      const td = document.createElement("td");
+      const klass = c === "id" ? "col-id"
+                  : c === "name" ? "col-name"
+                  : c === "desc" ? "col-desc"
+                  : "";
+      if (klass) td.className = klass;
+      let display;
+      if (c === "type") display = WUXUE_TYPE_NAME[row.type] ?? row.type ?? "—";
+      else display = row[c] == null ? "—" : String(row[c]);
+      td.textContent = display;
+      td.title = display;
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  });
+}
+
+function bindWuxue() {
+  const sel = $("#wuxue-type-select");
+  // "All" option
+  const all = document.createElement("option");
+  all.value = "-1"; all.textContent = `全部 All (${data.wuxue.length})`;
+  sel.appendChild(all);
+  // One option per type that actually has manuals
+  const present = new Set(data.wuxue.map(r => r.type));
+  for (const id of Object.keys(WUXUE_TYPE_NAME).map(Number).sort((a, b) => a - b)) {
+    if (!present.has(id)) continue;
+    const opt = document.createElement("option");
+    opt.value = String(id);
+    const count = data.wuxue.filter(r => r.type === id).length;
+    opt.textContent = `${WUXUE_TYPE_NAME[id]} (${count})`;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener("change", (e) => {
+    wuxue.type = parseInt(e.target.value, 10);
+    applyWuxueFilter();
+  });
+  $("#wuxue-search").addEventListener("input", (e) => {
+    wuxue.q = e.target.value;
+    applyWuxueFilter();
+  });
+  $("#wuxue-head").addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-col]");
+    if (!th) return;
+    const col = th.dataset.col;
+    if (wuxue.sortKey === col) {
+      wuxue.sortDir = wuxue.sortDir === "asc" ? "desc" : "asc";
+    } else {
+      wuxue.sortKey = col;
+      wuxue.sortDir = ["lvMax", "exp", "id", "type"].includes(col) ? "desc" : "asc";
+    }
+    applyWuxueFilter();
+  });
+  $("#wuxue-body").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-idx]");
+    if (!tr) return;
+    const row = wuxue.filtered[+tr.dataset.idx];
+    if (row) showModal(`${row.name} (#${row.id}) — ${WUXUE_TYPE_NAME[row.type]}`, row);
+  });
+  applyWuxueFilter();
+}
+
+// =========================================================================
 // Modal
 // =========================================================================
 function showModal(title, obj) {
@@ -361,6 +495,7 @@ function bindTabs() {
       $(`#panel-${tab.dataset.tab}`).classList.add("active");
       // Lazy-render gifts on first activation (a bit slower than items since it cross-references)
       if (tab.dataset.tab === "gifts" && !$("#npc-grid").children.length) renderNpcGrid();
+      // Wuxue tab — already pre-bound at init, no lazy work needed
     });
   });
 }
@@ -374,6 +509,7 @@ function bindTabs() {
     bindTabs();
     bindItems();
     bindGifts();
+    bindWuxue();
     bindModal();
   } catch (e) {
     document.body.innerHTML = `<div style="padding:32px;color:#c1463a;font-family:system-ui">

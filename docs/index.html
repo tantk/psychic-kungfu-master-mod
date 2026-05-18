@@ -18,6 +18,7 @@
   <nav class="tabs">
     <button class="tab active" data-tab="items">物品 Items</button>
     <button class="tab" data-tab="gifts">礼物 Gifts</button>
+    <button class="tab" data-tab="wuxue">武学 Martial Arts</button>
     <a class="tab tab-link" href="https://github.com/tantk/psychic-kungfu-master-mod" target="_blank" rel="noopener">GitHub</a>
   </nav>
 
@@ -53,7 +54,28 @@
       <div id="npc-grid"></div>
     </section>
 
-    <!-- Detail modal (shared by items + gifts) -->
+    <!-- Wuxue (Martial Arts) panel -->
+    <section class="panel" id="panel-wuxue">
+      <p class="hint">
+        All 201 martial-arts manuals in the game, categorized by the game's own
+        <code>WuXueType</code> enum: 刀 Saber · 剑 Sword · 拳 Fist & Palm · 枪 Spear & Staff · 暗器 Hidden Weapon · 琴 Instrument · 心法 Inner Cultivation · 外功 External / Defense · 轻功 Light-step / Movement.
+      </p>
+      <div class="controls">
+        <select id="wuxue-type-select" class="ctrl" title="类别 · type"></select>
+        <input id="wuxue-search" class="ctrl ctrl-search" type="text" placeholder="搜索 / search name, id, description...">
+        <span class="count" id="wuxue-count">—</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr id="wuxue-head"></tr></thead>
+          <tbody id="wuxue-body"></tbody>
+        </table>
+        <div class="empty" id="wuxue-empty" hidden>无数据 · no data</div>
+      </div>
+      <p class="hint">Click a row to see the full record. Click any column header to sort.</p>
+    </section>
+
+    <!-- Detail modal (shared by items + gifts + wuxue) -->
     <div class="modal-backdrop" id="modal" hidden>
       <div class="modal">
         <div class="modal-head">

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>江湖 · 今古群侠传</title>
+
+  <!-- Calligraphy + serif Chinese fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=Zhi+Mang+Xing&family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Apply persisted appearance before CSS paints to avoid theme flash
+    (function () {
+      try {
+        var t = localStorage.getItem("ui.theme") || "ink";
+        var f = localStorage.getItem("ui.font")  || "xiaowei";
+        var s = localStorage.getItem("ui.size")  || "1.00";
+        document.documentElement.setAttribute("data-theme", t);
+        document.documentElement.setAttribute("data-font",  f);
+        document.documentElement.style.setProperty("--ui-zoom", s);
+      } catch (e) { /* localStorage may not be ready in some sandboxes */ }
+    })();
+  </script>
+</head>
+<body>
+  <!-- Reusable SVG defs: grain filter, brush strokes, ink splash, seal ring -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- Parchment-grain noise overlay -->
+      <filter id="grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch"/>
+        <feColorMatrix values="0 0 0 0 0.95
+                               0 0 0 0 0.84
+                               0 0 0 0 0.62
+                               0 0 0 0.6 0"/>
+      </filter>
+      <!-- Brush-stroke underline -->
+      <symbol id="brushUnderline" viewBox="0 0 200 14" preserveAspectRatio="none">
+        <path d="M 4 8
+                 C 30 4, 60 12, 100 7
+                 S 160 11, 196 6"
+              fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 8 10 C 40 8, 80 11, 120 9 S 170 12, 192 9"
+              fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.6"
+              stroke-linecap="round"/>
+      </symbol>
+      <!-- Tab-indicator brush (smaller, more abrupt) -->
+      <symbol id="tabStroke" viewBox="0 0 100 10" preserveAspectRatio="none">
+        <path d="M 4 6 C 25 3, 50 8, 75 5 S 95 7, 96 6"
+              fill="none" stroke="currentColor" stroke-width="3"
+              stroke-linecap="round"/>
+      </symbol>
+      <!-- Irregular ink-blot for connection indicator -->
+      <symbol id="inkBlot" viewBox="0 0 20 20">
+        <path d="M 10 2 C 14 2, 18 5, 17 10
+                 C 18 14, 15 18, 10 17
+                 C 5 18, 2 14, 3 10
+                 C 2 6, 6 2, 10 2 Z"
+              fill="currentColor"/>
+        <circle cx="13" cy="6" r="0.8" fill="currentColor" opacity="0.8"/>
+        <circle cx="6" cy="14" r="0.5" fill="currentColor" opacity="0.6"/>
+      </symbol>
+      <!-- Ink-splash burst, animated via inline animateTransform -->
+      <symbol id="inkSplash" viewBox="0 0 60 60">
+        <g fill="currentColor">
+          <circle cx="30" cy="30" r="3"/>
+          <circle cx="42" cy="20" r="1.4" opacity="0.7"/>
+          <circle cx="18" cy="40" r="1.2" opacity="0.6"/>
+          <circle cx="46" cy="38" r="0.9" opacity="0.5"/>
+          <circle cx="14" cy="22" r="0.7" opacity="0.5"/>
+          <circle cx="50" cy="28" r="0.5" opacity="0.4"/>
+          <circle cx="10" cy="32" r="0.5" opacity="0.4"/>
+          <circle cx="32" cy="50" r="0.6" opacity="0.4"/>
+          <circle cx="28" cy="10" r="0.5" opacity="0.4"/>
+        </g>
+      </symbol>
+      <!-- Corner seal ring backplate -->
+      <symbol id="sealCorner" viewBox="0 0 80 80">
+        <rect x="2" y="2" width="76" height="76" rx="3" ry="3"
+              fill="none" stroke="currentColor" stroke-width="3"/>
+        <rect x="8" y="8" width="64" height="64" rx="2" ry="2"
+              fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.4"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- Grain overlay across the whole window -->
+  <div class="grain" aria-hidden="true">
+    <svg width="100%" height="100%"><rect width="100%" height="100%" filter="url(#grain)"/></svg>
+  </div>
+
+  <!-- Big 江湖 watermark drifting behind content -->
+  <div class="watermark" aria-hidden="true">江湖</div>
+
+  <!-- Custom title bar -->
+  <header class="titlebar" data-tauri-drag-region>
+    <div class="brand-row" data-tauri-drag-region>
+      <span class="seal-stamp" data-tauri-drag-region>江</span>
+      <span class="brand-eyebrow" data-tauri-drag-region>修改器 · CHEATS</span>
+    </div>
+    <div class="window-controls">
+      <button id="btn-min"  class="winctl" title="最小化">—</button>
+      <button id="btn-max"  class="winctl" title="最大化">□</button>
+      <button id="btn-close" class="winctl winctl-close" title="关闭">×</button>
+    </div>
+  </header>
+
+  <!-- Vertical brand column on the left edge -->
+  <aside class="vbrand" aria-hidden="true">
+    <span class="vbrand-text">今古群侠传</span>
+  </aside>
+
+  <main class="layout">
+    <!-- Horizontal tabs along the top -->
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="self" role="tab">
+        <span class="tab-cn">主公</span><span class="tab-en">Self</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <button class="tab" data-tab="explore" role="tab">
+        <span class="tab-cn">探索</span><span class="tab-en">Explore</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <button class="tab" data-tab="minigames" role="tab">
+        <span class="tab-cn">活动</span><span class="tab-en">Mini-games</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <button class="tab" data-tab="data" role="tab">
+        <span class="tab-cn">物品</span><span class="tab-en">Items</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <button class="tab" data-tab="npc" role="tab">
+        <span class="tab-cn">角色</span><span class="tab-en">NPCs</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <button class="tab" data-tab="sect" role="tab">
+        <span class="tab-cn">门派</span><span class="tab-en">Sects</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+      <div class="tabs-spacer"></div>
+      <button class="tab tab-meta" data-tab="settings" role="tab">
+        <span class="tab-cn">关于</span><span class="tab-en">About</span>
+        <svg class="tab-mark"><use href="#tabStroke"/></svg>
+      </button>
+    </nav>
+
+    <!-- Leader card — asymmetric, corner-stamped -->
+    <section class="leader-card" id="leader-card">
+      <svg class="leader-seal-bg" aria-hidden="true"><use href="#sealCorner"/></svg>
+      <div class="leader-seal-char" id="leader-seal">—</div>
+
+      <div class="leader-main">
+        <div class="leader-eyebrow">主公 · LEADER</div>
+        <div class="leader-name" id="leader-name">尚未载入存档</div>
+      </div>
+
+      <div class="leader-stats">
+        <div class="stat">
+          <span class="stat-key">银两</span>
+          <span class="stat-val" id="stat-money">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-key">时辰</span>
+          <span class="stat-val" id="stat-gametime">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-key">难度</span>
+          <span class="stat-val" id="stat-diff">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab panels -->
+    <section class="content" id="content">
+      <article class="panel active" id="panel-self">
+        <h2 class="panel-h">主公 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+        <p class="muted" style="margin-bottom:10px">Everything about the player character — money, attributes, combat, martial arts, reputation.</p>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" data-toggle="max_money" /><span class="toggle-track"></span><span class="toggle-label">无限银两 <em>Max Money</em></span></label>
+          <label class="toggle"><input type="checkbox" data-toggle="god_mode" /><span class="toggle-track"></span><span class="toggle-label">无敌 <em>God Mode · friendlies take 0 dmg</em></span></label>
+        </div>
+
+        <h3 class="panel-h2">银两 · Silver</h3>
+        <div class="btn-row">
+          <button class="btn" data-cmd="give_money" data-args='{"amount":10000}'>+ 一万</button>
+          <button class="btn" data-cmd="give_money" data-args='{"amount":100000}'>+ 十万</button>
+          <button class="btn" data-cmd="give_money" data-args='{"amount":1000000}'>+ 百万</button>
+          <button class="btn btn-accent" data-cmd="give_money" data-args='{"amount":10000000}'>+ 千万</button>
+        </div>
+
+        <h3 class="panel-h2">根基 · Six Pillars</h3>
+        <p class="muted" style="margin-bottom:8px">六大根基 · the six pillars of cultivation. Each click adds 1 point.</p>
+        <div class="btn-row">
+          <button class="btn" data-cmd="add_effect" data-args='{"id":101,"value":1}'>+ 根骨</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":102,"value":1}'>+ 力道</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":103,"value":1}'>+ 体魄</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":104,"value":1}'>+ 敏捷</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":105,"value":1}'>+ 技巧</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":106,"value":1}'>+ 悟性</button>
+        </div>
+        <div class="cur-row">
+          <span class="cur-item"><span class="cur-item-label">根骨</span><span class="cur-item-val" data-cur-effect="101">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">力道</span><span class="cur-item-val" data-cur-effect="102">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">体魄</span><span class="cur-item-val" data-cur-effect="103">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">敏捷</span><span class="cur-item-val" data-cur-effect="104">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">技巧</span><span class="cur-item-val" data-cur-effect="105">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">悟性</span><span class="cur-item-val" data-cur-effect="106">—</span></span>
+        </div>
+
+        <h3 class="panel-h2">直接经验 · Direct XP</h3>
+        <p class="muted" style="margin-bottom:8px">Adds XP straight to the pool the game converts to skill level (verified: <code>GetEffectLv(EffectId.实战)</code> reads from these). 武学 has no single pool — it's per-skill — so only the rate boost below applies to it.</p>
+        <div class="slider-row">
+          <span class="slider-label">实战 Combat</span>
+          <input type="range" id="xp-combat-amt" min="0" max="10000" step="50" value="1000" data-output="xp-combat-out" class="slider-range"/>
+          <output id="xp-combat-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":503,"value":1}' data-arg-from='{"value":"xp-combat-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="503">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">内功 Internal</span>
+          <input type="range" id="xp-neigong-direct-amt" min="0" max="10000" step="50" value="1000" data-output="xp-neigong-direct-out" class="slider-range"/>
+          <output id="xp-neigong-direct-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":501,"value":1}' data-arg-from='{"value":"xp-neigong-direct-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="501">现:—</span>
+        </div>
+
+        <h3 class="panel-h2">经验加成 · XP Rate Boost</h3>
+        <p class="muted" style="margin-bottom:8px">⚠ Different from Direct XP above. These are <em>%-rate multipliers</em> on future XP gain (divided by 100 at use, so 500 = +500% rate). Flip the toggle on to apply the slider amount; off to remove it. Drag the slider while on to update live.</p>
+        <div class="slider-row">
+          <span class="slider-label">实战 Combat</span>
+          <input type="range" id="exp-combat-amt" min="0" max="10000" step="50" value="500" data-output="exp-combat-out" class="slider-range"/>
+          <output id="exp-combat-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="20" data-amt-from="exp-combat-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="20">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">武学 Martial</span>
+          <input type="range" id="exp-wuxue-amt" min="0" max="10000" step="50" value="500" data-output="exp-wuxue-out" class="slider-range"/>
+          <output id="exp-wuxue-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="21" data-amt-from="exp-wuxue-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="21">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">内功 Internal</span>
+          <input type="range" id="exp-neigong-amt" min="0" max="10000" step="50" value="500" data-output="exp-neigong-out" class="slider-range"/>
+          <output id="exp-neigong-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="717" data-amt-from="exp-neigong-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="717">现:—</span>
+        </div>
+
+        <h3 class="panel-h2">战斗 · Combat</h3>
+        <div class="btn-row">
+          <button class="btn btn-accent" data-cmd="heal_team">全员回满 Heal team</button>
+        </div>
+
+        <h3 class="panel-h2">武学 · Martial Arts</h3>
+        <p class="muted" style="margin-bottom:8px">已学武学一键满级 · master every learned art.</p>
+        <div class="btn-row">
+          <button class="btn btn-accent" data-cmd="max_all_wuxue">满级所有武学</button>
+        </div>
+        <p class="muted" style="margin-bottom:8px">六兵精通 · Six Weapon Mastery — each click adds 1.</p>
+        <div class="btn-row">
+          <button class="btn" data-cmd="add_effect" data-args='{"id":201,"value":1}'>+ 刀法</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":202,"value":1}'>+ 剑法</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":203,"value":1}'>+ 拳掌</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":204,"value":1}'>+ 枪棍</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":205,"value":1}'>+ 暗器</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":206,"value":1}'>+ 琴功</button>
+        </div>
+        <div class="cur-row">
+          <span class="cur-item"><span class="cur-item-label">刀法</span><span class="cur-item-val" data-cur-effect="201">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">剑法</span><span class="cur-item-val" data-cur-effect="202">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">拳掌</span><span class="cur-item-val" data-cur-effect="203">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">枪棍</span><span class="cur-item-val" data-cur-effect="204">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">暗器</span><span class="cur-item-val" data-cur-effect="205">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">琴功</span><span class="cur-item-val" data-cur-effect="206">—</span></span>
+        </div>
+
+        <h3 class="panel-h2">声望 · Reputation</h3>
+        <p class="muted" style="margin-bottom:8px">Set the amount with each slider, then push the buttons to add/subtract by that amount.</p>
+        <div class="slider-row">
+          <span class="slider-label">善恶 Good ↔ Evil</span>
+          <input type="range" id="rep-eg-amt" min="1" max="50" step="1" value="10" data-output="rep-eg-out" class="slider-range"/>
+          <output id="rep-eg-out">10</output>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":401,"value":-1}' data-arg-from='{"value":"rep-eg-amt"}'>− 善 More good</button>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":401,"value":1}' data-arg-from='{"value":"rep-eg-amt"}'>+ 恶 More evil</button>
+          <span class="cur-val" data-cur-effect="401">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">名望 Fame</span>
+          <input type="range" id="rep-fame-amt" min="1" max="50" step="1" value="10" data-output="rep-fame-out" class="slider-range"/>
+          <output id="rep-fame-out">10</output>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":402,"value":1}' data-arg-from='{"value":"rep-fame-amt"}'>+ 名望</button>
+          <span class="cur-val" data-cur-effect="402">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">情缘 Romance</span>
+          <input type="range" id="rep-romance-amt" min="1" max="50" step="1" value="10" data-output="rep-romance-out" class="slider-range"/>
+          <output id="rep-romance-out">10</output>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":403,"value":1}' data-arg-from='{"value":"rep-romance-amt"}'>+ 情缘</button>
+          <span class="cur-val" data-cur-effect="403">现:—</span>
+        </div>
+      </article>
+
+      <article class="panel" id="panel-explore">
+        <h2 class="panel-h">探索 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" data-toggle="free_actions" /><span class="toggle-track"></span><span class="toggle-label">无消耗 <em>Free Actions · 精力 / 体力</em></span></label>
+          <label class="toggle"><input type="checkbox" data-toggle="freeze_time" /><span class="toggle-track"></span><span class="toggle-label">时停 <em>Freeze Time · world clock paused</em></span></label>
+        </div>
+        <h3 class="panel-h2">精力 / 体力 · Energy</h3>
+        <p class="muted" style="margin-bottom:8px">精力 (jingli) is wilderness stamina; 体力 (tili) is in-town stamina. Refill both at once, or raise the upper cap permanently.</p>
+        <div class="btn-row">
+          <button class="btn btn-accent" data-cmd="refill_energy" data-args='{"jingli":true,"tili":true}'>回满 精力 + 体力 Recover both</button>
+        </div>
+        <div class="cur-row">
+          <span class="cur-item"><span class="cur-item-label">精力</span><span class="cur-item-val" data-cur="jingli">—</span></span>
+          <span class="cur-item"><span class="cur-item-label">体力</span><span class="cur-item-val" data-cur="tili">—</span></span>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn" data-cmd="add_effect" data-args='{"id":601,"value":50}'>+ 精力上限 50</button>
+          <button class="btn" data-cmd="add_effect" data-args='{"id":602,"value":50}'>+ 体力上限 50</button>
+        </div>
+
+        <h3 class="panel-h2">时间 · Time</h3>
+        <p class="muted" style="margin-bottom:8px">For permanent pause, use the 时停 toggle above. Buttons below advance the world clock by N hours (时辰).</p>
+        <div class="btn-row">
+          <button class="btn" data-cmd="add_hour" data-args='{"hours":1}'>+ 一时辰</button>
+          <button class="btn" data-cmd="add_hour" data-args='{"hours":4}'>+ 四时辰</button>
+          <button class="btn" data-cmd="add_hour" data-args='{"hours":12}'>+ 十二时辰</button>
+        </div>
+      </article>
+
+      <article class="panel" id="panel-minigames">
+        <h2 class="panel-h">活动 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+        <p class="muted" style="margin-bottom:14px">Skip the mini-games. Each section grants the same rewards (and skill XP) the game would, without playing it. If you want a <em>specific</em> fish/prey, use the Items tab — these buttons roll random drops weighted by the game's own loot tables.</p>
+
+        <h3 class="panel-h2">钓鱼 · Fishing</h3>
+        <div class="btn-row">
+          <button class="btn" data-cmd="skip_fishing" data-args='{"fish_id":0,"count":1}'>🎣 钓一条鱼</button>
+          <button class="btn" data-cmd="skip_fishing" data-args='{"fish_id":0,"count":10}'>🎣 钓鱼 ×10</button>
+          <button class="btn btn-accent" data-cmd="skip_fishing" data-args='{"fish_id":0,"count":50}'>🎣 钓鱼 ×50</button>
+        </div>
+
+        <h3 class="panel-h2">打猎 · Hunting</h3>
+        <div class="btn-row">
+          <button class="btn" data-cmd="skip_hunting" data-args='{"hunt_id":0,"count":1}'>🏹 打个猎物</button>
+          <button class="btn" data-cmd="skip_hunting" data-args='{"hunt_id":0,"count":10}'>🏹 打猎 ×10</button>
+          <button class="btn btn-accent" data-cmd="skip_hunting" data-args='{"hunt_id":0,"count":50}'>🏹 打猎 ×50</button>
+        </div>
+
+        <h3 class="panel-h2">驯兽 · Animal Taming</h3>
+        <p class="muted" style="margin-bottom:8px">Max bond level with one or all animals — uses the game's own per-animal exp thresholds.</p>
+        <div class="btn-row">
+          <button class="btn btn-accent" data-cmd="skip_taming_all">🐾 一键驯服所有动物 Max all bonds</button>
+        </div>
+        <div class="give-action" style="margin-top:8px">
+          <span class="give-label">指定动物 Specific animal</span>
+          <input class="give-qty" id="tame-npc-id" type="number" placeholder="npcId" />
+          <button class="btn give-btn" id="tame-one-btn">驯服 Max bond</button>
+          <span class="give-status" id="tame-status"></span>
+        </div>
+
+        <h3 class="panel-h2">炼丹 · Alchemy</h3>
+        <p class="muted" style="margin-bottom:8px">To craft a <em>specific</em> pill at a chosen quality, pick the recipe in the Items tab (丹方 · Alchemy Recipes) and use the skip-alchemy action there.</p>
+
+        <h3 class="panel-h2">打造 · Forging</h3>
+        <p class="muted" style="margin-bottom:8px">To craft a <em>specific</em> weapon/armour, pick the recipe in the Items tab (打造图谱 · Forging Recipes) and use the skip-forging action there.</p>
+
+        <h3 class="panel-h2">生活技 直接经验 · Living Arts — Direct XP</h3>
+        <p class="muted" style="margin-bottom:8px">Direct XP added to the actual pool the game converts to skill level (verified: <code>GetEffectLv(EffectId.钓鱼)</code> etc. read from these). Each Apply adds that much XP; the skill auto-levels when thresholds are crossed.</p>
+        <div class="slider-row">
+          <span class="slider-label">钓鱼 Fishing</span>
+          <input type="range" id="la-fish-amt" min="0" max="10000" step="50" value="1000" data-output="la-fish-out" class="slider-range"/>
+          <output id="la-fish-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":303,"value":1}' data-arg-from='{"value":"la-fish-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="303">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">打猎 Hunting</span>
+          <input type="range" id="la-hunt-amt" min="0" max="10000" step="50" value="1000" data-output="la-hunt-out" class="slider-range"/>
+          <output id="la-hunt-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":304,"value":1}' data-arg-from='{"value":"la-hunt-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="304">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">驯兽 Taming</span>
+          <input type="range" id="la-tame-amt" min="0" max="10000" step="50" value="1000" data-output="la-tame-out" class="slider-range"/>
+          <output id="la-tame-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":301,"value":1}' data-arg-from='{"value":"la-tame-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="301">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">炼丹 Alchemy</span>
+          <input type="range" id="la-alch-amt" min="0" max="10000" step="50" value="1000" data-output="la-alch-out" class="slider-range"/>
+          <output id="la-alch-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":305,"value":1}' data-arg-from='{"value":"la-alch-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="305">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">打造 Forging</span>
+          <input type="range" id="la-forge-amt" min="0" max="10000" step="50" value="1000" data-output="la-forge-out" class="slider-range"/>
+          <output id="la-forge-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":307,"value":1}' data-arg-from='{"value":"la-forge-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="307">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">挖掘 Digging</span>
+          <input type="range" id="la-dig-amt" min="0" max="10000" step="50" value="1000" data-output="la-dig-out" class="slider-range"/>
+          <output id="la-dig-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":302,"value":1}' data-arg-from='{"value":"la-dig-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="302">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">下棋 Chess</span>
+          <input type="range" id="la-chess-amt" min="0" max="10000" step="50" value="1000" data-output="la-chess-out" class="slider-range"/>
+          <output id="la-chess-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":306,"value":1}' data-arg-from='{"value":"la-chess-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="306">现:—</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">采集 Gathering</span>
+          <input type="range" id="la-gather-amt" min="0" max="10000" step="50" value="1000" data-output="la-gather-out" class="slider-range"/>
+          <output id="la-gather-out">1000</output><span class="slider-suffix">xp</span>
+          <button class="btn slider-apply" data-cmd="add_effect" data-args='{"id":308,"value":1}' data-arg-from='{"value":"la-gather-amt"}'>+ Apply</button>
+          <span class="cur-val" data-cur-effect="308">现:—</span>
+        </div>
+
+        <h3 class="panel-h2">生活技 经验加成 · Living Arts — XP Rate Boost</h3>
+        <p class="muted" style="margin-bottom:8px">⚠ Different from Direct XP above. These are <em>%-rate multipliers</em> on future XP gain (the game divides by 100 at use, so 500 = +500% rate). Flip the toggle on to apply the slider amount; off to remove it. Use this if you'd rather earn XP faster by playing the mini-game than skip past it.</p>
+        <div class="slider-row">
+          <span class="slider-label">钓鱼 Fishing</span>
+          <input type="range" id="lab-fish-amt" min="0" max="10000" step="50" value="500" data-output="lab-fish-out" class="slider-range"/>
+          <output id="lab-fish-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="722" data-amt-from="lab-fish-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="722">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">打猎 Hunting</span>
+          <input type="range" id="lab-hunt-amt" min="0" max="10000" step="50" value="500" data-output="lab-hunt-out" class="slider-range"/>
+          <output id="lab-hunt-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="723" data-amt-from="lab-hunt-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="723">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">驯兽 Taming</span>
+          <input type="range" id="lab-tame-amt" min="0" max="10000" step="50" value="500" data-output="lab-tame-out" class="slider-range"/>
+          <output id="lab-tame-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="720" data-amt-from="lab-tame-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="720">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">炼丹 Alchemy</span>
+          <input type="range" id="lab-alch-amt" min="0" max="10000" step="50" value="500" data-output="lab-alch-out" class="slider-range"/>
+          <output id="lab-alch-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="724" data-amt-from="lab-alch-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="724">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">打造 Forging</span>
+          <input type="range" id="lab-forge-amt" min="0" max="10000" step="50" value="500" data-output="lab-forge-out" class="slider-range"/>
+          <output id="lab-forge-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="726" data-amt-from="lab-forge-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="726">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">挖掘 Digging</span>
+          <input type="range" id="lab-dig-amt" min="0" max="10000" step="50" value="500" data-output="lab-dig-out" class="slider-range"/>
+          <output id="lab-dig-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="721" data-amt-from="lab-dig-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="721">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">下棋 Chess</span>
+          <input type="range" id="lab-chess-amt" min="0" max="10000" step="50" value="500" data-output="lab-chess-out" class="slider-range"/>
+          <output id="lab-chess-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="725" data-amt-from="lab-chess-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="725">现:—×</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">采集 Gathering</span>
+          <input type="range" id="lab-gather-amt" min="0" max="10000" step="50" value="500" data-output="lab-gather-out" class="slider-range"/>
+          <output id="lab-gather-out">500</output><span class="slider-suffix">%</span>
+          <label class="toggle slider-toggle"><input type="checkbox" data-effect-toggle="732" data-amt-from="lab-gather-amt"/><span class="toggle-track"></span></label>
+          <span class="cur-val" data-cur-effect="732">现:—×</span>
+        </div>
+      </article>
+
+      <article class="panel" id="panel-data">
+        <h2 class="panel-h">物品 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+        <div class="data-controls">
+          <select id="item-type-select" class="data-select" title="主类 · main category">
+            <!-- options populated by JS from ItemType enum -->
+          </select>
+          <select id="item-type2-select" class="data-select" title="子类 · subcategory">
+            <!-- options populated by JS from ItemType2 enum, narrowed by main category -->
+          </select>
+          <input id="data-search" class="data-search" type="text" placeholder="搜索 / search name, id, description..." />
+          <span class="data-count" id="data-count">—</span>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table" id="data-table">
+            <thead><tr id="data-table-head"></tr></thead>
+            <tbody id="data-table-body"></tbody>
+          </table>
+          <div class="data-empty" id="data-empty" hidden>无数据 / no data</div>
+        </div>
+        <p class="muted" id="data-hint" style="margin-top:6px">单击任意行查看完整记录 · click any row to expand full record</p>
+      </article>
+
+      <!-- Record-detail modal -->
+      <div class="modal-backdrop" id="data-detail-modal" hidden>
+        <div class="modal modal-wide">
+          <div class="modal-head">
+            <h3 id="data-detail-title">记录</h3>
+            <button class="modal-close" id="data-detail-close">×</button>
+          </div>
+
+          <!-- Give-to-inventory action (only shown for item / equip / gift tables) -->
+          <div class="give-action" id="give-action" hidden>
+            <span class="give-label">添加至背包 · Add to inventory</span>
+            <input class="give-qty" id="give-qty" type="number" min="1" max="999999" value="1" />
+            <button class="btn btn-accent give-btn" id="give-btn">+ 添加 Add</button>
+            <span class="give-status" id="give-status"></span>
+          </div>
+
+          <!-- Alchemy skip — for danfang (recipe-book) rows: grants the resulting pill at chosen quality + 炼丹 XP.
+               This is NOT the same as "Add to inventory" — that would only add the recipe book itself. -->
+          <div class="give-action" id="alchemy-skip-action" hidden>
+            <span class="give-label">炼丹 · craft the pill from this recipe</span>
+            <button class="btn give-btn" id="alchemy-skip-0">下品 Low</button>
+            <button class="btn give-btn" id="alchemy-skip-1">中品 Mid</button>
+            <button class="btn btn-accent give-btn" id="alchemy-skip-2">上品 Top</button>
+            <span class="give-status" id="alchemy-skip-status"></span>
+          </div>
+
+          <!-- Forging skip — for dazao (recipe-book) rows: grants the resulting weapon/armour + 打造 XP.
+               "Add to inventory" would only add the recipe book itself. -->
+          <div class="give-action" id="forging-skip-action" hidden>
+            <span class="give-label">打造 · craft the item from this recipe</span>
+            <button class="btn btn-accent give-btn" id="forging-skip-btn">+ 打造 Craft</button>
+            <span class="give-status" id="forging-skip-status"></span>
+          </div>
+
+          <pre class="data-detail" id="data-detail-pre"></pre>
+        </div>
+      </div>
+
+      <article class="panel" id="panel-npc">
+        <h2 class="panel-h">角色编辑 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+
+        <div class="npc-controls">
+          <input id="npc-search" class="data-search" type="text" placeholder="搜索角色名 / search NPC name…" />
+          <select id="npc-faction" class="data-select">
+            <option value="">全部门派 / all factions</option>
+          </select>
+          <span class="data-count" id="npc-count">—</span>
+        </div>
+
+        <div class="npc-grid" id="npc-grid"></div>
+      </article>
+
+      <!-- NPC edit modal -->
+      <div class="modal-backdrop" id="npc-modal" hidden>
+        <div class="modal modal-wide modal-npc">
+          <div class="modal-head">
+            <h3 id="npc-modal-title">角色编辑</h3>
+            <button class="modal-close" id="npc-modal-close">×</button>
+          </div>
+
+          <div class="npc-modal-body">
+            <!-- Static alignment info — read-only, from NpcData template -->
+            <section class="npc-section">
+              <h4 class="npc-section-title">声望影响 · Alignment <span class="npc-section-hint">(static — defines how interactions affect player reputation)</span></h4>
+              <div class="npc-grid-3col">
+                <label>善恶 · evil contribution<input id="np-static-evil" readonly></label>
+                <label>门派好感 · group favor<input id="np-static-groupfavor" readonly></label>
+                <label>基础好感 · base favor<input id="np-static-basefavor" readonly></label>
+              </div>
+              <p class="muted" style="font-size:11px;margin-top:6px">Killing/robbing this NPC will adjust your 善恶 by the value above (multiplied if you murder them).</p>
+            </section>
+
+            <!-- State (save-persistent) -->
+            <section class="npc-section">
+              <h4 class="npc-section-title">状态 · State <span class="npc-section-hint">(saved in profile)</span></h4>
+              <div class="npc-grid-2col">
+                <label>好友等级<input id="np-friend-lv" type="number" min="0" max="8" value="0"></label>
+                <label>好感度<input id="np-favo" type="number" value="0"></label>
+                <label>所携银两<input id="np-money" type="number" value="0"></label>
+                <label class="npc-checkbox"><input id="np-deaded" type="checkbox"> 已死亡 dead</label>
+                <label class="npc-checkbox"><input id="np-robed" type="checkbox"> 已被掠夺 robbed</label>
+                <label class="npc-checkbox"><input id="np-show" type="checkbox" checked> 显示在世界 visible</label>
+              </div>
+            </section>
+
+            <!-- Combat stats (CharacterData edit, takes effect next battle) -->
+            <section class="npc-section">
+              <h4 class="npc-section-title">战斗属性 · Combat Stats <span class="npc-section-hint">(future battles)</span> <span id="np-modified-flag" class="np-mod-flag" hidden>· 已修改</span></h4>
+              <div class="npc-grid-3col">
+                <label>气血 HP<input id="ns-hp" type="number"></label>
+                <label>内力 MP<input id="ns-mp" type="number"></label>
+                <label>攻击 ATK<input id="ns-atk" type="number"></label>
+                <label>防御 DEF<input id="ns-def" type="number"></label>
+                <label>暴击 CRT<input id="ns-crt" type="number"></label>
+                <label>闪避 EVA<input id="ns-eva" type="number"></label>
+                <label>速度 Speed<input id="ns-speed" type="number"></label>
+                <label>移动 Move<input id="ns-move" type="number"></label>
+                <label>射程 Range<input id="ns-range" type="number"></label>
+              </div>
+            </section>
+
+            <!-- Kungfu loadout -->
+            <section class="npc-section">
+              <h4 class="npc-section-title">武学 · Kungfu Loadout
+                <span class="npc-section-hint">tip: AI uses skills if MP ≥ cost and target in range</span>
+              </h4>
+
+              <div class="skill-row-header">
+                <span>主动技能 Active Skills (<span id="np-active-count">0</span>/4)</span>
+                <button class="btn-small" id="np-add-active">+ 添加主动</button>
+              </div>
+              <ul class="skill-list" id="np-active-list"></ul>
+
+              <div class="skill-row-header">
+                <span>被动技能 Passive Skills (<span id="np-passive-count">0</span>/4)</span>
+                <button class="btn-small" id="np-add-passive">+ 添加被动</button>
+              </div>
+              <ul class="skill-list" id="np-passive-list"></ul>
+            </section>
+
+            <div class="npc-modal-actions">
+              <button class="btn btn-accent" id="np-save">保存 Save</button>
+              <button class="btn-small" id="np-reset-char">重置战斗属性 Reset stats/skills</button>
+              <span class="give-status" id="np-status"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sect panel -->
+      <article class="panel" id="panel-sect">
+        <h2 class="panel-h">门派编辑 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+        <p class="muted" style="margin-bottom:10px">Each card is a faction. Click to view membership + mass-edit favor toward all NPCs of that sect.</p>
+        <div class="npc-controls">
+          <input id="sect-search" class="data-search" type="text" placeholder="搜索门派 / search sect…" />
+          <span class="data-count" id="sect-count">—</span>
+        </div>
+        <div class="npc-grid" id="sect-grid"></div>
+      </article>
+
+      <!-- Sect edit modal -->
+      <div class="modal-backdrop" id="sect-modal" hidden>
+        <div class="modal modal-wide modal-npc">
+          <div class="modal-head">
+            <h3 id="sect-modal-title">门派</h3>
+            <button class="modal-close" id="sect-modal-close">×</button>
+          </div>
+          <div class="npc-modal-body">
+            <section class="npc-section">
+              <h4 class="npc-section-title">门派信息 · Sect Info</h4>
+              <div class="npc-grid-3col">
+                <label>门派ID<input id="sc-id" readonly></label>
+                <label>NPC 总数 total<input id="sc-total" readonly></label>
+                <label>NPC 存活 alive<input id="sc-alive" readonly></label>
+                <label>NPC 死亡 dead<input id="sc-dead" readonly></label>
+                <label>平均好感 avg favor<input id="sc-avg-favo" readonly></label>
+                <label class="npc-checkbox"><input id="sc-member" type="checkbox"> 玩家是该门派成员 / member</label>
+              </div>
+            </section>
+            <section class="npc-section">
+              <h4 class="npc-section-title">批量好感 · Mass-Favor <span class="npc-section-hint">applies to every alive NPC in this sect</span></h4>
+              <div class="give-action" style="margin-bottom:10px">
+                <span class="give-label">自定义 Custom amount</span>
+                <input class="give-qty" id="sc-favo-custom" type="number" value="5" />
+                <button class="btn btn-accent give-btn" id="sc-favo-apply">应用 Apply</button>
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="sc-favo-m100">− 100</button>
+                <button class="btn" id="sc-favo-m50">− 50</button>
+                <button class="btn" id="sc-favo-m10">− 10</button>
+                <button class="btn" id="sc-favo-p10">+ 10</button>
+                <button class="btn" id="sc-favo-p50">+ 50</button>
+                <button class="btn" id="sc-favo-p100">+ 100</button>
+                <button class="btn btn-accent" id="sc-favo-p999">+ 999 (cap)</button>
+              </div>
+            </section>
+            <div class="npc-modal-actions">
+              <button class="btn btn-accent" id="sc-save">保存成员状态 Save membership</button>
+              <span class="give-status" id="sc-status"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skill picker submodal -->
+      <div class="modal-backdrop" id="skill-picker-modal" hidden>
+        <div class="modal modal-wide">
+          <div class="modal-head">
+            <h3 id="skill-picker-title">选择技能 Pick a skill</h3>
+            <button class="modal-close" id="skill-picker-close">×</button>
+          </div>
+          <div class="skill-picker-controls">
+            <input id="skill-picker-search" class="data-search" type="text" placeholder="搜索技能名/ID search…">
+            <span class="data-count" id="skill-picker-count">—</span>
+          </div>
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead><tr id="skill-picker-head"></tr></thead>
+              <tbody id="skill-picker-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <article class="panel" id="panel-settings">
+        <h2 class="panel-h">设置 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+
+        <h3 class="panel-h2">主题 · Theme</h3>
+        <div class="theme-grid" id="theme-grid">
+          <button class="theme-card" data-theme="ink"     title="墨黑">
+            <span class="theme-swatch s-ink"></span>
+            <span class="theme-name">墨黑</span><span class="theme-en">Ink Black</span>
+          </button>
+          <button class="theme-card" data-theme="paper"   title="宣纸">
+            <span class="theme-swatch s-paper"></span>
+            <span class="theme-name">宣纸</span><span class="theme-en">Rice Paper</span>
+          </button>
+          <button class="theme-card" data-theme="celadon" title="青瓷">
+            <span class="theme-swatch s-celadon"></span>
+            <span class="theme-name">青瓷</span><span class="theme-en">Celadon</span>
+          </button>
+          <button class="theme-card" data-theme="crimson" title="赤壁">
+            <span class="theme-swatch s-crimson"></span>
+            <span class="theme-name">赤壁</span><span class="theme-en">Crimson</span>
+          </button>
+          <button class="theme-card" data-theme="bamboo"  title="竹简">
+            <span class="theme-swatch s-bamboo"></span>
+            <span class="theme-name">竹简</span><span class="theme-en">Bamboo</span>
+          </button>
+        </div>
+
+        <h3 class="panel-h2">字体 · Font</h3>
+        <select id="font-select" class="font-select">
+          <option value="noto"     style="font-family:'Noto Serif SC',serif">思源宋体 · Noto Serif (Modern Serif)</option>
+          <option value="notosans" style="font-family:'Noto Sans SC',sans-serif">思源黑体 · Noto Sans (Modern Sans)</option>
+          <option value="xiaowei"  style="font-family:'ZCOOL XiaoWei',serif">小薇 · ZCOOL XiaoWei (Display Serif)</option>
+          <option value="kuaile"   style="font-family:'ZCOOL KuaiLe',sans-serif">快乐体 · ZCOOL KuaiLe (Rounded)</option>
+          <option value="qingke"   style="font-family:'ZCOOL QingKe HuangYou',sans-serif">庆科黄油体 · QingKe (Strong)</option>
+          <option value="brush"    style="font-family:'Ma Shan Zheng',cursive">书法 · Ma Shan Zheng (Brush)</option>
+          <option value="longcang" style="font-family:'Long Cang',cursive">龙藏 · Long Cang (Calligraphy)</option>
+          <option value="liujian"  style="font-family:'Liu Jian Mao Cao',cursive">柳建 · Liu Jian (Flowing Brush)</option>
+          <option value="zhimang"  style="font-family:'Zhi Mang Xing',cursive">志莽行 · Zhi Mang (Wild Brush)</option>
+          <option value="system"   style="font-family:'Microsoft YaHei',sans-serif">系统默认 · System</option>
+        </select>
+
+        <h3 class="panel-h2">大小 · Size</h3>
+        <div class="size-row">
+          <button class="btn-small" data-size="0.85">小 Small</button>
+          <button class="btn-small" data-size="1.00">中 Medium</button>
+          <button class="btn-small" data-size="1.15">大 Large</button>
+          <button class="btn-small" data-size="1.30">特大 X-Large</button>
+        </div>
+
+        <h3 class="panel-h2">快捷键 · Hotkeys</h3>
+        <p class="muted">默认未绑定。点击按钮捕获按键,或清除以禁用。</p>
+        <div class="hotkey-list">
+          <div class="hotkey-row" data-hotkey="max_money">
+            <span class="hotkey-name">无限银两 · Max Money</span>
+            <button class="hotkey-btn" data-action="bind">未绑定</button>
+            <button class="hotkey-clear" data-action="clear" title="清除">×</button>
+          </div>
+          <div class="hotkey-row" data-hotkey="free_actions">
+            <span class="hotkey-name">无消耗 · Free Actions</span>
+            <button class="hotkey-btn" data-action="bind">未绑定</button>
+            <button class="hotkey-clear" data-action="clear" title="清除">×</button>
+          </div>
+          <div class="hotkey-row" data-hotkey="god_mode">
+            <span class="hotkey-name">无敌 · God Mode</span>
+            <button class="hotkey-btn" data-action="bind">未绑定</button>
+            <button class="hotkey-clear" data-action="clear" title="清除">×</button>
+          </div>
+          <div class="hotkey-row" data-hotkey="freeze_time">
+            <span class="hotkey-name">时停 · Freeze Time</span>
+            <button class="hotkey-btn" data-action="bind">未绑定</button>
+            <button class="hotkey-clear" data-action="clear" title="清除">×</button>
+          </div>
+        </div>
+
+        <h3 class="panel-h2">错误日志 · Error Log <span class="error-badge" id="error-badge">0</span></h3>
+        <div class="error-actions">
+          <button class="btn-small" id="btn-show-errors">查看 / View</button>
+          <button class="btn-small" id="btn-clear-errors">清空 / Clear</button>
+        </div>
+
+        <h3 class="panel-h2">关于 · About</h3>
+        <dl class="about">
+          <dt>通信</dt><dd>命名管道 <code>\\.\pipe\JinGuCheats.v1</code></dd>
+          <dt>插件</dt><dd id="about-version">—</dd>
+        </dl>
+      </article>
+
+      <!-- Hotkey capture modal -->
+      <div class="modal-backdrop" id="hotkey-modal" hidden>
+        <div class="modal">
+          <h3>按下任意按键 · Press any key</h3>
+          <p class="muted">为 <span id="hotkey-target-name">—</span> 绑定快捷键 ...</p>
+          <p class="hotkey-capture-hint">Escape 取消</p>
+        </div>
+      </div>
+
+      <!-- Error log modal -->
+      <div class="modal-backdrop" id="error-modal" hidden>
+        <div class="modal modal-wide">
+          <div class="modal-head">
+            <h3>错误日志 · Error Log</h3>
+            <button class="modal-close" id="error-modal-close">×</button>
+          </div>
+          <div class="error-list" id="error-list">— 无错误 —</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Status bar -->
+  <footer class="statusbar">
+    <span class="conn" id="conn">
+      <svg class="conn-blot"><use href="#inkBlot"/></svg>
+      <span id="conn-text">未连接</span>
+    </span>
+    <span class="status-msg" id="status-msg">等待游戏 …</span>
+    <!-- Ink splash plays on action success -->
+    <svg class="ink-splash" id="ink-splash" aria-hidden="true"><use href="#inkSplash"/></svg>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# === Decompiled game code (copyright-sensitive — never commit) ===
+# Anyone building from source decompiles their own copy via ILSpy.
+/decomp/
+/decomp_versions/
+
+# === Extracted game data tables (canonical extraction — regenerable) ===
+# The 14 tables bundled with the UI live in ui/src/data/ and ARE committed.
+# This dir holds the full ~47-table extraction from `python tools/extract-game-data.py`.
+/data/
+
+# === Local installer / downloads cache ===
+/downloads/
+
+# === Rust build artifacts (Tauri UI) ===
+ui/src-tauri/target/
+ui/src-tauri/Cargo.lock.bak
+ui/node_modules/
+
+# === .NET build artifacts (plugin) ===
+plugin/bin/
+plugin/obj/
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === IDE / editor ===
+.vscode/
+.idea/
+*.swp
+*~
+
+# === OS ===
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# === Misc ===
+*.log
+*.bak

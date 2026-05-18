@@ -11,6 +11,9 @@
 # === Local installer / downloads cache ===
 /downloads/
 
+# === Release artifacts (built by tools/make-release.ps1, uploaded to GitHub Releases) ===
+/release/
+
 # === Rust build artifacts (Tauri UI) ===
 ui/src-tauri/target/
 ui/src-tauri/Cargo.lock.bak

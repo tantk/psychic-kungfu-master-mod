@@ -2,6 +2,8 @@
 
 A MelonLoader-based cheat mod for **今古群侠传 (JinGu)** by 金十四工作室, with an external Tauri-based UI in a separate window — wuxia-themed, with five user-switchable color themes.
 
+🔗 **[Download latest release](https://github.com/tantk/psychic-kungfu-master-mod/releases/latest)** · 📖 **[Data reference site (items + NPC gifts)](https://tantk.github.io/psychic-kungfu-master-mod/)** · 🐛 **[Report a bug](https://github.com/tantk/psychic-kungfu-master-mod/issues/new)**
+
 > **Compatibility:** tested against JinGu Steam build of 2026-05-18 with MelonLoader 0.7.3.
 
 ## Features

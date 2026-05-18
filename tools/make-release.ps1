@@ -1,18 +1,13 @@
-# Build the release zip that ships to end users.
+# Build the release artifacts that ship to end users.
 #
-# Run from repo root:  pwsh tools/make-release.ps1 -Version 0.1.0
-# Output:              release/JinGuCheats-v<Version>.zip
+# Run from repo root:  powershell -File tools\make-release.ps1 -Version 0.1.0
+# Outputs:
+#   release\JinGuCheats-Setup-v<Version>.exe   (primary — Inno Setup wizard, 1-click install)
+#   release\JinGuCheats-v<Version>.zip          (fallback — portable layout with install.bat)
 #
-# The zip lays everything FLAT so install.bat can reference its siblings via %~dp0:
-#   JinGuCheats-v0.1.0/
-#   ├── install.bat
-#   ├── uninstall.bat
-#   ├── JinGuCheats.dll
-#   ├── jingu-cheats-ui.exe
-#   ├── pre-launch.bat
-#   ├── pre-launch.ps1
-#   ├── README.md
-#   └── LICENSE
+# The Setup.exe is what users should download. The zip is for power users who'd rather
+# inspect / install manually, and as a recovery option if the Setup.exe gets flagged
+# by overzealous AV (some engines flag any Inno installer that touches Program Files).
 
 param(
     [Parameter(Mandatory = $true)]
@@ -71,3 +66,27 @@ Compress-Archive -Path "$out\*" -DestinationPath $zip
 Write-Host "Built: $zip"
 Write-Host "Contents:"
 Get-ChildItem $out | ForEach-Object { Write-Host "  $($_.Name)  ($($_.Length) bytes)" }
+
+# === Inno Setup installer (the primary user-facing artifact) ===
+# Looks in the standard install location for iscc.exe. Skips with a warning if missing.
+$iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\iscc.exe"
+if (-not (Test-Path $iscc)) {
+    $iscc = "C:\Program Files (x86)\Inno Setup 6\iscc.exe"
+}
+if (Test-Path $iscc) {
+    Write-Host ""
+    Write-Host "Building installer with Inno Setup..."
+    & $iscc "/Qp" "/DMyAppVersion=$Version" "installer\setup.iss"
+    if ($LASTEXITCODE -eq 0) {
+        $setupExe = "release\JinGuCheats-Setup-v$Version.exe"
+        if (Test-Path $setupExe) {
+            $size = [math]::Round((Get-Item $setupExe).Length / 1MB, 1)
+            Write-Host "Built: $setupExe  ($size MB)"
+        }
+    } else {
+        Write-Warning "Inno Setup compile failed with exit code $LASTEXITCODE"
+    }
+} else {
+    Write-Warning "Inno Setup not found — skipping Setup.exe build."
+    Write-Warning "Install it via: winget install JRSoftware.InnoSetup"
+}

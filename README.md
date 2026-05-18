@@ -60,27 +60,41 @@ A MelonLoader-based cheat mod for **今古群侠传 (JinGu)** by 金十四工作
 
 ## ⚠ About antivirus warnings
 
-Windows Defender and most antivirus products **will flag the cheat DLL** because it hooks into another process and uses reflection to modify game state — those are the same techniques real malware uses. The full source for everything you're installing is in this repository for you to inspect.
+Windows Defender and most antivirus products **will flag the cheat DLL** because it hooks into another process and uses reflection to modify game state — those are the same techniques real malware uses. There is no honest way to make this go away without a code-signing certificate; the source for everything in the release is in this repository for you to inspect.
 
-If you'd rather not allow AV exceptions for unsigned binaries, don't install. If you do trust this build, the simplest fix is:
+What might happen and what to do:
 
-- **Allow the file** when AV prompts, or
-- **Add an exclusion** for the game folder (`C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\`) in your AV settings.
+- **SmartScreen** ("Windows protected your PC") on the setup .exe — click **More info → Run anyway**. SmartScreen flags unsigned downloads by default; reputation builds over time as more people install.
+- **Defender** flags the dropped DLL after install — open Virus & threat protection → Allow on device, or add an exclusion for the game folder (`C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\`) before installing.
+- **Some third-party AV** (Avast / Kaspersky / etc.) may quarantine the DLL silently. If the mod "isn't loading," check your AV's quarantine list first.
 
-## Install — easy mode (recommended)
+If you'd rather not allow exceptions for unsigned binaries, don't install.
 
-The release zip is self-contained — **MelonLoader 0.7.3 is bundled inside it**, you don't need to download anything else.
+## Install (recommended — the installer)
 
-1. Download the release zip from the Releases page and extract it anywhere.
-2. **Right-click `install.bat` → Run as administrator** (it self-elevates if you forget). It:
-   - Finds your JinGu folder automatically (or asks if it can't)
-   - Extracts the bundled MelonLoader into the game folder
-   - Patches the four corlibs MelonLoader needs (game ships stripped versions that break the loader)
-   - Drops `JinGuCheats.dll`, `jingu-cheats-ui.exe`, and the `pre-launch.*` auto-heal scripts into `Mods\`
-3. **Recommended:** add the Steam Launch Option the installer prints out — it tells Steam to run `pre-launch.bat` before the game, which auto-repairs the corlibs whenever a JinGu update reverts them (this happens every few updates).
-4. Launch JinGu through Steam. The cheat UI window opens automatically within a couple seconds of the game starting.
+**Download `JinGuCheats-Setup-v0.1.0.exe`** from the [Releases page](https://github.com/tantk/psychic-kungfu-master-mod/releases). Double-click it. Walk through the wizard.
 
-To uninstall, **right-click `uninstall.bat` → Run as administrator**. It removes `version.dll`, `MelonLoader\`, `Mods\`, and `UserData\`. Your save files are untouched.
+The installer auto-detects your JinGu folder via the Steam registry, extracts the bundled MelonLoader, patches the Mono runtime, drops the mod files into `Mods\`, and prints the recommended Steam Launch Option on the finish page. The whole thing is one .exe — **MelonLoader 0.7.3 is bundled inside it**, no separate download.
+
+To uninstall later, use **Add or remove programs** in Windows Settings, find "JinGu Cheats", and click Uninstall. Save files are untouched (they live in `%LOCALAPPDATA%Low\金十四工作室\JinGu\SaveDatas\`).
+
+### Recommended Steam Launch Option
+
+Steam updates occasionally revert the patched Mono runtime back to the stripped originals, which silently breaks the mod. To auto-repair on every launch, paste this into Steam → JinGu → Properties → General → Launch Options:
+
+```
+"C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\Mods\pre-launch.bat" %command%
+```
+
+(Replace the path if your Steam library is elsewhere — the installer shows your exact path on the finish page.)
+
+## Install (fallback — the portable zip)
+
+If the installer fails (overzealous AV, locked-down corporate machine, etc.), the same files are also packaged as `JinGuCheats-v0.1.0.zip`:
+
+1. Extract anywhere.
+2. **Right-click `install.bat` → Run as administrator** (self-elevates if you forget). Same steps as the wizard, just console-based.
+3. To uninstall: **right-click `uninstall.bat` → Run as administrator**.
 
 ## Install — manual mode (no installer)
 

@@ -69,24 +69,26 @@ If you'd rather not allow AV exceptions for unsigned binaries, don't install. If
 
 ## Install — easy mode (recommended)
 
+The release zip is self-contained — **MelonLoader 0.7.3 is bundled inside it**, you don't need to download anything else.
+
 1. Download the release zip from the Releases page and extract it anywhere.
-2. **Install MelonLoader 0.7.3 first**:
-   - Download `MelonLoader.x64.zip` from <https://github.com/LavaGang/MelonLoader/releases/tag/v0.7.3>
-   - Extract it directly into your JinGu folder (the one with `JinGu.exe` — typically `C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\`). After extracting, `version.dll` should sit next to `JinGu.exe`.
-3. **Right-click `installer\install.bat` → Run as administrator** (it self-elevates if you forget). It:
+2. **Right-click `install.bat` → Run as administrator** (it self-elevates if you forget). It:
    - Finds your JinGu folder automatically (or asks if it can't)
+   - Extracts the bundled MelonLoader into the game folder
    - Patches the four corlibs MelonLoader needs (game ships stripped versions that break the loader)
    - Drops `JinGuCheats.dll`, `jingu-cheats-ui.exe`, and the `pre-launch.*` auto-heal scripts into `Mods\`
-4. **Recommended:** add the Steam Launch Option the installer prints out — it tells Steam to run `pre-launch.bat` before the game, which auto-repairs the corlibs whenever a JinGu update reverts them (this happens every few updates).
-5. Launch JinGu through Steam. The cheat UI window opens automatically within a couple seconds of the game starting.
+3. **Recommended:** add the Steam Launch Option the installer prints out — it tells Steam to run `pre-launch.bat` before the game, which auto-repairs the corlibs whenever a JinGu update reverts them (this happens every few updates).
+4. Launch JinGu through Steam. The cheat UI window opens automatically within a couple seconds of the game starting.
 
-To uninstall, **right-click `installer\uninstall.bat` → Run as administrator**. It removes `version.dll`, `MelonLoader\`, `Mods\`, and `UserData\`. Your save files are untouched.
+To uninstall, **right-click `uninstall.bat` → Run as administrator**. It removes `version.dll`, `MelonLoader\`, `Mods\`, and `UserData\`. Your save files are untouched.
 
 ## Install — manual mode (no installer)
 
-If you'd rather not run a script, do steps 2 then:
+If you'd rather not run a script:
 
-1. **Patch the stripped Mono runtime.** Open PowerShell, paste, hit Enter:
+1. **Extract the bundled `MelonLoader.x64.zip`** from the release into your JinGu folder (`C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\`). After extracting, `version.dll` should sit next to `JinGu.exe`.
+
+2. **Patch the stripped Mono runtime.** Open PowerShell, paste, hit Enter:
 
    ```powershell
    $src = "C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\MelonLoader\Dependencies\MonoBleedingEdgePatches"
@@ -97,21 +99,21 @@ If you'd rather not run a script, do steps 2 then:
    }
    ```
 
-2. **Copy these from the release zip into `<game folder>\Mods\`**:
+3. **Copy these from the release zip into `<game folder>\Mods\`**:
    - `JinGuCheats.dll`
    - `jingu-cheats-ui.exe`
    - `pre-launch.bat`  (optional — for the auto-heal feature below)
    - `pre-launch.ps1`  (optional — used by the bat)
 
-3. **Optional auto-heal Steam Launch Option** — Steam updates revert the corlibs every few patches. Pasting this once into `Steam → JinGu → Properties → General → Launch Options` makes Steam re-patch them on every launch:
+4. **Optional auto-heal Steam Launch Option** — Steam updates revert the corlibs every few patches. Pasting this once into `Steam → JinGu → Properties → General → Launch Options` makes Steam re-patch them on every launch:
 
    ```
    "C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\Mods\pre-launch.bat" %command%
    ```
 
-4. Launch through Steam.
+5. Launch through Steam.
 
-> Newer MelonLoader versions may work but are unverified — stick to 0.7.3 for predictable behavior.
+> The bundled MelonLoader is 0.7.3. Newer versions may work but are unverified — for predictable behavior, use the bundled copy.
 
 ## Using the cheats
 
@@ -205,4 +207,6 @@ Built on top of:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+This mod (plugin source + UI source + installer scripts) is MIT — see [LICENSE](LICENSE).
+
+The release zip also bundles **MelonLoader 0.7.3 (Apache 2.0)**, distributed unchanged. Its license is preserved as `MelonLoader-LICENSE.md` in the release. Source and notice: <https://github.com/LavaGang/MelonLoader>.

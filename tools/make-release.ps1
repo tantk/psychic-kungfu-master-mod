@@ -29,9 +29,12 @@ $preBat   = "tools\pre-launch.bat"
 $prePs1   = "tools\pre-launch.ps1"
 $installBat   = "installer\install.bat"
 $uninstallBat = "installer\uninstall.bat"
+# MelonLoader 0.7.3 x64 bundled with the release so users don't need a separate download.
+# Distributed unchanged (kept as the original zip) — Apache 2.0 license requires preserving
+# their LICENSE/NOTICE, which we do by extracting LICENSE.md alongside it.
+$melonZip = "downloads\MelonLoader.x64.zip"
 
-# Sanity: every input must exist before we zip
-foreach ($f in $plugin, $ui, $preBat, $prePs1, $installBat, $uninstallBat, "README.md", "LICENSE") {
+foreach ($f in $plugin, $ui, $preBat, $prePs1, $installBat, $uninstallBat, $melonZip, "README.md", "LICENSE") {
     if (-not (Test-Path $f)) { throw "Missing build artifact: $f. Build plugin + UI first." }
 }
 
@@ -45,8 +48,21 @@ Copy-Item $preBat       "$out\pre-launch.bat"
 Copy-Item $prePs1       "$out\pre-launch.ps1"
 Copy-Item $installBat   "$out\install.bat"
 Copy-Item $uninstallBat "$out\uninstall.bat"
+Copy-Item $melonZip     "$out\MelonLoader.x64.zip"
 Copy-Item "README.md"   "$out\README.md"
 Copy-Item "LICENSE"     "$out\LICENSE"
+
+# Extract MelonLoader's LICENSE.md to satisfy Apache 2.0 attribution.
+$tmpExtract = "release\_ml_tmp"
+if (Test-Path $tmpExtract) { Remove-Item $tmpExtract -Recurse -Force }
+Expand-Archive -Path $melonZip -DestinationPath $tmpExtract -Force
+$mlLicense = "$tmpExtract\MelonLoader\Documentation\LICENSE.md"
+if (Test-Path $mlLicense) {
+    Copy-Item $mlLicense "$out\MelonLoader-LICENSE.md"
+} else {
+    Write-Warning "MelonLoader LICENSE.md not found at expected path inside zip — Apache 2.0 attribution missing"
+}
+Remove-Item $tmpExtract -Recurse -Force
 
 $zip = "release\JinGuCheats-v$Version.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }

@@ -57,25 +57,35 @@ echo.
 echo Installing to: !GAME_DIR!
 echo.
 
-REM === Step 2: check MelonLoader is installed ===
-if not exist "!GAME_DIR!\version.dll" (
-  echo.
-  echo MelonLoader is not installed yet. It is required for this mod.
-  echo.
-  echo Opening the MelonLoader download page in your browser...
-  echo.
-  echo Steps:
-  echo   1. Download MelonLoader.x64.zip from the page that just opened
-  echo   2. Extract its contents directly into:
-  echo      !GAME_DIR!
-  echo      ^(version.dll should end up next to JinGu.exe^)
-  echo   3. Re-run this installer
-  echo.
-  start "" "https://github.com/LavaGang/MelonLoader/releases/tag/v0.7.3"
-  pause
-  exit /b 1
+REM === Step 2: install MelonLoader from the bundled zip ===
+REM We ship MelonLoader 0.7.3 x64 alongside this script (Apache 2.0 — see
+REM MelonLoader-LICENSE.md). install.bat extracts it directly into the game
+REM folder so users don't need a separate download.
+if exist "!GAME_DIR!\version.dll" (
+  echo MelonLoader already installed — skipping extraction.
+) else (
+  if not exist "%~dp0MelonLoader.x64.zip" (
+    echo.
+    echo ERROR: MelonLoader.x64.zip is missing from the installer folder.
+    echo Re-extract the release zip and try again.
+    pause
+    exit /b 1
+  )
+  echo Extracting bundled MelonLoader to game folder...
+  powershell -ExecutionPolicy Bypass -Command "Expand-Archive -Path '%~dp0MelonLoader.x64.zip' -DestinationPath '!GAME_DIR!' -Force"
+  if errorlevel 1 (
+    echo ERROR: failed to extract MelonLoader. Try running as administrator.
+    pause
+    exit /b 1
+  )
+  if not exist "!GAME_DIR!\version.dll" (
+    echo ERROR: MelonLoader extraction did not produce version.dll.
+    echo Check that the bundled zip is intact.
+    pause
+    exit /b 1
+  )
+  echo MelonLoader installed.
 )
-echo MelonLoader detected.
 
 REM === Step 3: patch stripped Mono runtime ===
 echo Patching stripped Mono runtime...

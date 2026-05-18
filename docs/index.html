@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今古群侠传 · 数据参考</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-head">
+    <h1>今古群侠传 · 数据参考</h1>
+    <p class="tag">A community data reference for <strong>JinGu</strong> by 金十四工作室 — items, recipes, NPC gift preferences. All data extracted from the game's static tables for reference only. <a href="https://store.steampowered.com/app/3313720/" target="_blank" rel="noopener">Buy the game on Steam</a>.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="items">物品 Items</button>
+    <button class="tab" data-tab="gifts">礼物 Gifts</button>
+    <a class="tab tab-link" href="https://github.com/tantk/psychic-kungfu-master-mod" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+
+  <main class="content">
+    <!-- Items panel -->
+    <section class="panel active" id="panel-items">
+      <div class="controls">
+        <select id="item-type-select" class="ctrl" title="主类 · main category"></select>
+        <select id="item-type2-select" class="ctrl" title="子类 · subcategory"></select>
+        <input id="item-search" class="ctrl ctrl-search" type="text" placeholder="搜索 / search name, id, description...">
+        <span class="count" id="item-count">—</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr id="item-head"></tr></thead>
+          <tbody id="item-body"></tbody>
+        </table>
+        <div class="empty" id="item-empty" hidden>无数据 · no data</div>
+      </div>
+      <p class="hint">Click a row to see the full record. Click any column header to sort.</p>
+    </section>
+
+    <!-- Gifts panel -->
+    <section class="panel" id="panel-gifts">
+      <p class="hint">
+        Pick an NPC to see what they like and dislike. Gift categories: 1 料理 Cuisine · 2 酒 Wine · 3 茶 Tea · 4 武学 Manuals · 5 装备 Equipment · 6 珍宝 Treasure · 7 风月 Pleasures · 8 文玩 Antiques · 9 妆饰 Cosmetics.
+      </p>
+      <div class="controls">
+        <input id="npc-search" class="ctrl ctrl-search" type="text" placeholder="搜索 NPC / search name or id...">
+        <span class="count" id="npc-count">—</span>
+      </div>
+      <div id="npc-grid"></div>
+    </section>
+
+    <!-- Detail modal (shared by items + gifts) -->
+    <div class="modal-backdrop" id="modal" hidden>
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="modal-title">记录</h3>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <pre class="modal-body" id="modal-body"></pre>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <span>Data sourced from game build 2026-05-18. Game © 金十四工作室. Site code MIT.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

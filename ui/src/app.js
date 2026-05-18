@@ -1073,12 +1073,28 @@ const TYPE_NAME = Object.fromEntries(ITEM_TYPES.map(t => [t.id, t.name]));
 const ITEM_COLUMNS = ["id", "name", "quality", "type", "type2", "value", "describe"];
 
 const dataCache = {};
-// State of the items browser: current filter selections.
+// State of the items browser: current filter + sort selections.
 let currentTypeFilter = 0;
 let currentType2Filter = 0;
 let currentRows = [];          // filtered+sorted view used by the modal indexer
 let allItems = [];             // full item.json
+let sortKey = null;             // column id being sorted by; null = source order
+let sortDir = "asc";            // "asc" or "desc"
 const MAX_ROWS = 200;
+
+function sortRows(rows) {
+  if (!sortKey) return rows;
+  const sign = sortDir === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    // null / undefined always sort to the end regardless of direction
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === "number" && typeof vb === "number") return (va - vb) * sign;
+    return String(va).localeCompare(String(vb), undefined, { numeric: true }) * sign;
+  });
+}
 
 async function loadDataTable(key) {
   if (dataCache[key]) return dataCache[key];
@@ -1097,7 +1113,11 @@ function renderCell(value) {
 }
 
 function renderItemRows(rows) {
-  $("#data-table-head").innerHTML = ITEM_COLUMNS.map(c => `<th>${c}</th>`).join("");
+  $("#data-table-head").innerHTML = ITEM_COLUMNS.map(c => {
+    const isActive = c === sortKey;
+    const arrow = isActive ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+    return `<th class="th-sortable${isActive ? ' th-sorted' : ''}" data-col="${c}">${c}${arrow}</th>`;
+  }).join("");
   const body = $("#data-table-body");
   body.innerHTML = "";
   $("#data-empty").hidden = rows.length > 0;
@@ -1148,7 +1168,8 @@ function updateDataCount(shown, total) {
 
 function applyDataFilter() {
   const q = $("#data-search").value;
-  currentRows = filterItems(allItems, currentTypeFilter, currentType2Filter, q);
+  // sort the full filtered set, so the visible top-MAX_ROWS reflects the true top of the sort
+  currentRows = sortRows(filterItems(allItems, currentTypeFilter, currentType2Filter, q));
   renderItemRows(currentRows);
   updateDataCount(Math.min(currentRows.length, MAX_ROWS), allItems.length);
 }
@@ -1295,6 +1316,22 @@ async function bindDataBrowser() {
   });
 
   $("#data-search").addEventListener("input", () => applyDataFilter());
+
+  // Click a column header to sort by it; click again to toggle direction.
+  $("#data-table-head").addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-col]");
+    if (!th) return;
+    const col = th.dataset.col;
+    if (sortKey === col) {
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+    } else {
+      sortKey = col;
+      // For numeric columns (value, id, quality, type, type2), default to descending —
+      // most users want "highest value first" rather than "lowest first".
+      sortDir = ["value", "quality", "type", "type2", "id"].includes(col) ? "desc" : "asc";
+    }
+    applyDataFilter();
+  });
 
   $("#data-table-body").addEventListener("click", (e) => {
     const tr = e.target.closest("tr[data-idx]");

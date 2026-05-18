@@ -1082,6 +1082,22 @@ const ITEM_TYPE2S = [
 const TYPE2_NAME = Object.fromEntries(ITEM_TYPE2S.map(t => [t.id, t.name]));
 const TYPE_NAME = Object.fromEntries(ITEM_TYPES.map(t => [t.id, t.name]));
 
+// WuXueType enum — for the optional third-level filter that only shows when
+// subcategory = 武学 (type2 = 11). Cross-referenced against wuxue.json by item id.
+// Source: decomp/DBLoad/WuXueType.cs.
+const WUXUE_SUBTYPE_NAME = {
+  0: "全部 / Untyped",
+  1: "刀 Saber",
+  2: "剑 Sword",
+  3: "拳 Fist & Palm",
+  4: "枪 Spear & Staff",
+  5: "暗器 Hidden Weapon",
+  6: "琴 Instrument",
+  7: "心法 Inner Cultivation",
+  8: "外功 External / Defense",
+  9: "轻功 Light-step / Movement",
+};
+
 // Columns shown in the items table — fixed set since we always source from item.json.
 const ITEM_COLUMNS = ["id", "name", "quality", "type", "type2", "value", "describe"];
 
@@ -1089,11 +1105,25 @@ const dataCache = {};
 // State of the items browser: current filter + sort selections.
 let currentTypeFilter = 0;
 let currentType2Filter = 0;
-let currentRows = [];          // filtered+sorted view used by the modal indexer
-let allItems = [];             // full item.json
+let currentWuxueSubFilter = -1; // -1 = no filter (only used when type2 === 11)
+let currentRows = [];           // filtered+sorted view used by the modal indexer
+let allItems = [];              // full item.json
+let wuxueSubtypeByItemId = null; // built lazily on first 武学 filter
 let sortKey = null;             // column id being sorted by; null = source order
 let sortDir = "asc";            // "asc" or "desc"
 const MAX_ROWS = 200;
+
+async function ensureWuxueIndex() {
+  if (wuxueSubtypeByItemId) return;
+  try {
+    const rows = await loadDataTable("wuxue");
+    wuxueSubtypeByItemId = Object.create(null);
+    for (const r of rows) wuxueSubtypeByItemId[r.id] = r.type;
+  } catch (e) {
+    console.warn("wuxue.json load failed — subtype filter disabled:", e);
+    wuxueSubtypeByItemId = {};
+  }
+}
 
 function sortRows(rows) {
   if (!sortKey) return rows;
@@ -1159,9 +1189,12 @@ function renderItemRows(rows) {
 
 function filterItems(rows, type, type2, query) {
   const q = (query || "").toLowerCase().trim();
+  const wuxueSub = currentWuxueSubFilter;
+  const wuxueActive = type2 === 11 && wuxueSub !== -1 && wuxueSubtypeByItemId;
   return rows.filter(row => {
     if (type !== 0 && row.type !== type) return false;
     if (type2 !== 0 && row.type2 !== type2) return false;
+    if (wuxueActive && wuxueSubtypeByItemId[row.id] !== wuxueSub) return false;
     if (!q) return true;
     for (const v of Object.values(row)) {
       if (v === null || v === undefined) continue;
@@ -1317,14 +1350,46 @@ async function bindDataBrowser() {
   // Initial subcategory list (all)
   rebuildType2Select(0);
 
-  mainSel.addEventListener("change", () => {
+  // Populate the optional wuxue-subtype <select>. Stays hidden until type2 === 11.
+  const wxSel = $("#item-wuxue-subtype-select");
+  const allOpt = document.createElement("option");
+  allOpt.value = "-1"; allOpt.textContent = "全部武学 All martial arts";
+  wxSel.appendChild(allOpt);
+  for (const id of Object.keys(WUXUE_SUBTYPE_NAME).map(Number).sort((a, b) => a - b)) {
+    if (id === 0) continue;  // skip the "untyped" template marker
+    const opt = document.createElement("option");
+    opt.value = String(id); opt.textContent = WUXUE_SUBTYPE_NAME[id];
+    wxSel.appendChild(opt);
+  }
+
+  async function refreshWuxueSelectVisibility() {
+    if (currentType2Filter === 11) {
+      await ensureWuxueIndex();
+      wxSel.hidden = false;
+    } else {
+      wxSel.hidden = true;
+      // Reset the subtype filter so a future re-selection of 武学 doesn't carry stale state
+      if (currentWuxueSubFilter !== -1) {
+        currentWuxueSubFilter = -1;
+        wxSel.value = "-1";
+      }
+    }
+  }
+
+  mainSel.addEventListener("change", async () => {
     currentTypeFilter = parseInt(mainSel.value, 10);
     rebuildType2Select(currentTypeFilter);
     currentType2Filter = parseInt($("#item-type2-select").value, 10);
+    await refreshWuxueSelectVisibility();
     applyDataFilter();
   });
-  $("#item-type2-select").addEventListener("change", (e) => {
+  $("#item-type2-select").addEventListener("change", async (e) => {
     currentType2Filter = parseInt(e.target.value, 10);
+    await refreshWuxueSelectVisibility();
+    applyDataFilter();
+  });
+  wxSel.addEventListener("change", (e) => {
+    currentWuxueSubFilter = parseInt(e.target.value, 10);
     applyDataFilter();
   });
 

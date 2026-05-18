@@ -56,10 +56,11 @@ internal static class Cheats
             in_game = false,
             toggles = new System.Collections.Generic.Dictionary<string, bool>
             {
-                ["max_money"]    = Plugin.CfgMaxMoney.Value,
-                ["free_actions"] = Plugin.CfgFreeActions.Value,
-                ["god_mode"]     = Plugin.CfgGodMode.Value,
-                ["freeze_time"]  = Plugin.CfgFreezeTime.Value,
+                ["max_money"]       = Plugin.CfgMaxMoney.Value,
+                ["free_actions"]    = Plugin.CfgFreeActions.Value,
+                ["god_mode"]        = Plugin.CfgGodMode.Value,
+                ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
+                ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
             }
         };
     }
@@ -115,10 +116,11 @@ internal static class Cheats
         {
             toggles = new Dictionary<string, bool>
             {
-                ["max_money"]    = Plugin.CfgMaxMoney.Value,
-                ["free_actions"] = Plugin.CfgFreeActions.Value,
-                ["god_mode"]     = Plugin.CfgGodMode.Value,
-                ["freeze_time"]  = Plugin.CfgFreezeTime.Value,
+                ["max_money"]       = Plugin.CfgMaxMoney.Value,
+                ["free_actions"]    = Plugin.CfgFreeActions.Value,
+                ["god_mode"]        = Plugin.CfgGodMode.Value,
+                ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
+                ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
             }
         };
 
@@ -280,10 +282,11 @@ internal static class Cheats
     {
         switch (name)
         {
-            case "max_money":    Plugin.CfgMaxMoney.Value = value; break;
-            case "free_actions": Plugin.CfgFreeActions.Value = value; break;
-            case "god_mode":     Plugin.CfgGodMode.Value = value; break;
-            case "freeze_time":  Plugin.CfgFreezeTime.Value = value; break;
+            case "max_money":      Plugin.CfgMaxMoney.Value     = value; break;
+            case "free_actions":   Plugin.CfgFreeActions.Value  = value; break;
+            case "god_mode":       Plugin.CfgGodMode.Value      = value; break;
+            case "freeze_time":    Plugin.CfgFreezeTime.Value   = value; break;
+            case "auto_launch_ui": Plugin.CfgAutoLaunchUi.Value = value; break;
             default: return $"unknown toggle '{name}'";
         }
         return $"{name} = {value}";

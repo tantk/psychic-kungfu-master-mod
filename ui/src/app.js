@@ -452,18 +452,24 @@ function bindErrorLog() {
 // ============================================================
 
 // Faction id → 门派 name. Source: DBLoad/NpcCamp.cs enum.
+// Faction / sect — names + ids sourced from decomp/DBLoad/NpcCamp.cs.
+// Id 17 is intentionally skipped in the enum; 101 (情缘) has no pre-assigned NPCs.
 const FACTION_NAMES = {
   1: "牛家村", 2: "灵九宫", 3: "少林", 4: "青衫派", 5: "铸剑山庄",
   6: "银武卫", 7: "铁尸门", 8: "七宝门", 9: "朝廷", 10: "雪山派",
   11: "豢龙会", 12: "唐门", 13: "剑庐", 14: "松山剑派", 15: "丐帮",
-  16: "东海道心派", 17: "万兽山庄", 18: "驼龙寨", 19: "天下", 20: "苦海教",
-  21: "金刚宗", 22: "合欢宗", 23: "漕运帮", 24: "五毒教", 25: "白家",
-  26: "海鲨帮", 27: "黑风寨", 28: "百匪谷", 29: "七煞山庄",
+  16: "东海道心派", 18: "海鲨帮", 19: "万兽山庄", 20: "岭南四煞",
+  21: "红袖居", 22: "红莲苦海教", 23: "楞伽金刚宗", 24: "漕运帮", 25: "泾水城",
+  26: "合欢宗", 27: "东林书阁", 28: "方歆武馆", 29: "大理城", 30: "五毒教",
+  31: "七煞山庄", 32: "金武卫", 33: "百匪谷", 34: "漠北", 35: "神都城",
+  36: "大理王宫", 37: "静禅寺", 38: "八通商局",
+  101: "情缘", 102: "宠物", 103: "江湖",
 };
 
 const npcState = {
   npcs: [],         // npc.json
   characters: {},   // characterId -> CharacterData (from JSON)
+  books: {},        // bookId -> BookData (for proper NPC display names)
   skills: {},       // skillId -> SkillData
   passives: {},     // passiveId -> PassiveData
   skillUseCount: {},     // skillId -> count of characters using it
@@ -474,14 +480,16 @@ const npcState = {
 
 async function loadNpcDataset() {
   if (npcState.npcs.length) return;
-  const [npcs, chars, skills, passives] = await Promise.all([
+  const [npcs, chars, books, skills, passives] = await Promise.all([
     loadDataTable("npc"),
     loadDataTable("character"),
+    loadDataTable("book"),
     loadDataTable("skill"),
     loadDataTable("passive"),
   ]);
   npcState.npcs = npcs;
   for (const c of chars) npcState.characters[c.id] = c;
+  for (const b of books) npcState.books[b.id] = b;
   for (const s of skills) npcState.skills[s.id] = s;
   for (const p of passives) npcState.passives[p.id] = p;
   // Pre-compute usage counts so we can show "used by N other characters" in the picker
@@ -492,10 +500,15 @@ async function loadNpcDataset() {
 }
 
 function npcDisplayName(npc) {
-  // npc.json has no `name` field — pull from item.json via book id (NPCs use character → m_book → Book.m_name).
-  // We don't have book.json in bundle; fall back to character chengHao or "NPC <id>".
+  // Same resolution path as NpcInfo.Name in-game: npc.characterId → character.book → book.name.
+  // book.name "虾米" is a placeholder used for un-fleshed-out NPCs — fall back to id in that case.
   const ch = npcState.characters[npc.characterId];
-  return (ch && ch.chengHao) ? ch.chengHao : `NPC #${npc.id}`;
+  if (ch) {
+    const book = npcState.books[ch.book];
+    if (book && book.name && book.name !== "虾米") return book.name;
+    if (ch.chengHao) return ch.chengHao;
+  }
+  return `NPC #${npc.id}`;
 }
 
 function renderNpcGrid() {

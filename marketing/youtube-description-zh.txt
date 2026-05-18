@@ -1,0 +1,37 @@
+🔗 下载 (Windows): https://github.com/tantk/psychic-kungfu-master-mod/releases/latest
+📖 数据查询站 (物品 + NPC礼物喜好): https://tantk.github.io/psychic-kungfu-master-mod/
+💻 完整源代码 (MIT 开源): https://github.com/tantk/psychic-kungfu-master-mod
+🐛 反馈与建议: https://github.com/tantk/psychic-kungfu-master-mod/issues
+
+《今古群侠传》是金十四工作室在 Steam 上发行的武侠 RPG 游戏。
+这是一个由社区构建的开源修改器,带有水墨风的独立界面窗口。
+
+工具功能:
+• 无限银两 / 无敌 / 时停 / 无消耗 等开关
+• 六大根基属性修改器 + 直接经验槽 + 经验加成倍率切换
+• 六兵精通 + 声望值 (善恶 / 名望 / 情缘) 滑块调整
+• 一键完成小游戏:钓鱼 / 打猎 / 驯兽 / 炼丹 / 打造 等
+• 全部 948 件物品浏览器,内置游戏分类筛选 + 列排序
+• NPC 编辑器 (属性、武学搭配、好感度、好友等级)
+• 门派编辑器,批量调整门派好感
+• 5 套水墨主题 / 10 种字体 / 自定义快捷键
+
+基于 MelonLoader (Apache 2.0) + Harmony + Tauri 构建,完全开源。
+本工具仅用于单人游戏体验,不影响联机或他人。
+请在 Steam 上购买正版以支持开发者:https://store.steampowered.com/app/3313720/
+
+⚠ 杀毒软件提示:
+插件 DLL 会被部分杀毒软件 (Windows Defender 等) 标记 ——
+因为修改器需要 hook 进游戏进程并使用反射, 这类技术与恶意软件相同。
+完整源代码已开源,可在 GitHub 自行审查。README 中有详细的允许操作说明。
+
+00:00 介绍
+00:30 安装演示
+02:00 界面巡览
+04:00 物品页 + 分类筛选
+05:30 NPC + 门派编辑器
+07:00 小游戏一键完成
+08:30 数据查询站
+10:00 下载地址
+
+#今古群侠传 #JinGu #武侠 #单机游戏 #修改器 #开源 #MelonLoader

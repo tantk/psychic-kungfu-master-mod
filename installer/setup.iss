@@ -43,9 +43,15 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\ui\src-tauri\icons\icon.ico
-UninstallDisplayIcon={app}\Mods\jingu-cheats-ui.exe
 ShowLanguageDialog=no
 ChangesAssociations=no
+; This is a game mod, not a Windows application. Don't pollute Settings → Apps with
+; a fake "JinGu Cheats" entry, don't write to HKLM\...\Uninstall, don't create an
+; uninstaller exe. To uninstall, users run uninstall.bat from the game's Mods\
+; folder (which Setup copies in as part of the install).
+Uninstallable=no
+CreateUninstallRegKey=no
+UsePreviousAppDir=no
 
 [Languages]
 ; English only — Inno's bundle doesn't ship a Simplified Chinese .isl by default and the
@@ -53,12 +59,12 @@ ChangesAssociations=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; Bundled binaries — payload extracted into the game folder, never to {app}.
-; Setup's job is to place these correctly; uninstall removes them.
+; Bundled binaries — payload dropped into the game folder.
 Source: "..\plugin\bin\Release\JinGuCheats.dll"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\ui\src-tauri\target\release\jingu-cheats-ui.exe"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\tools\pre-launch.bat"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\tools\pre-launch.ps1"; DestDir: "{app}\Mods"; Flags: ignoreversion
+Source: "..\installer\uninstall.bat"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\downloads\MelonLoader.x64.zip"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "..\README.md"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}\Mods"; DestName: "JinGuCheats-LICENSE"; Flags: ignoreversion
@@ -69,13 +75,6 @@ Name: "launchoption"; Description: "Add Steam Launch Option for auto-heal (recom
 [Run]
 ; Open the README after install so users see the troubleshooting steps once
 Filename: "{app}\Mods\README.md"; Description: "Open README"; Flags: postinstall shellexec skipifsilent unchecked nowait
-
-[UninstallDelete]
-; Wipe the patched MelonLoader on uninstall. Save files in %LOCALAPPDATA%Low are untouched.
-Type: filesandordirs; Name: "{app}\MelonLoader"
-Type: filesandordirs; Name: "{app}\Mods"
-Type: filesandordirs; Name: "{app}\UserData"
-Type: files; Name: "{app}\version.dll"
 
 [Code]
 // === Helpers ===
@@ -210,14 +209,16 @@ begin
         LaunchLine + #13#10 + #13#10 +
         'Steam → JinGu → Properties → General → Launch Options' + #13#10 + #13#10 +
         'This makes Steam re-patch the Mono runtime on every launch — needed because some game updates revert the patched files.' + #13#10 + #13#10 +
-        'Launch the game through Steam to start playing.';
+        'Launch the game through Steam to start playing.' + #13#10 + #13#10 +
+        'To uninstall later: right-click ' + ExpandConstant('{app}') + '\Mods\uninstall.bat and Run as administrator.';
     end
     else
     begin
       WizardForm.FinishedLabel.Caption :=
         'JinGu Cheats has been installed.' + #13#10 + #13#10 +
         'Launch the game through Steam to start playing. The cheat UI opens automatically a couple seconds after the game window appears.' + #13#10 + #13#10 +
-        'Tip: if a game update ever reverts the Mono patch, run setup again — it''s safe to re-install on top of an existing copy.';
+        'Tip: if a game update ever reverts the Mono patch, run setup again — it''s safe to re-install on top of an existing copy.' + #13#10 + #13#10 +
+        'To uninstall later: right-click ' + ExpandConstant('{app}') + '\Mods\uninstall.bat and Run as administrator.';
     end;
   end;
 end;

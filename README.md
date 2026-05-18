@@ -76,7 +76,7 @@ If you'd rather not allow exceptions for unsigned binaries, don't install.
 
 The installer auto-detects your JinGu folder via the Steam registry, extracts the bundled MelonLoader, patches the Mono runtime, drops the mod files into `Mods\`, and prints the recommended Steam Launch Option on the finish page. The whole thing is one .exe — **MelonLoader 0.7.3 is bundled inside it**, no separate download.
 
-To uninstall later, use **Add or remove programs** in Windows Settings, find "JinGu Cheats", and click Uninstall. Save files are untouched (they live in `%LOCALAPPDATA%Low\金十四工作室\JinGu\SaveDatas\`).
+A mod is a modification to a game, not its own Windows app — so Setup deliberately **does not** register in Add/Remove Programs. To uninstall, right-click `<game folder>\Mods\uninstall.bat` and *Run as administrator*. It removes `version.dll`, `MelonLoader\`, `Mods\`, and `UserData\`. Save files live in `%LOCALAPPDATA%Low\金十四工作室\JinGu\SaveDatas\` and are untouched.
 
 ### Recommended Steam Launch Option
 

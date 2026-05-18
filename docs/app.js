@@ -51,6 +51,27 @@ const GIFT_TYPE_NAME = {
   7: "风月 Pleasures", 8: "文玩 Antiques", 9: "妆饰 Cosmetics",
 };
 
+// NPC faction / sect — from decomp/DBLoad/NpcCamp.cs. The `group` field on each NPC
+// is the integer id of their camp. Id 17 is intentionally skipped in the enum; 101
+// is a runtime-only marker for romance interests so no pre-assigned NPCs use it.
+const GROUP_NAME = {
+  1: "牛家村 Niu Village", 2: "灵九宫 Lingjiu Palace", 3: "少林 Shaolin",
+  4: "青衫派 Qingshan Sect", 5: "铸剑山庄 Sword-Forge Manor", 6: "银武卫 Silver Guard",
+  7: "铁尸门 Iron-Corpse Sect", 8: "七宝门 Seven Treasures Sect", 9: "朝廷 Imperial Court",
+  10: "雪山派 Snow Mountain Sect", 11: "豢龙会 Dragon-Keepers", 12: "唐门 Tang Clan",
+  13: "剑庐 Sword Hut", 14: "松山剑派 Pine Mountain Sword Sect", 15: "丐帮 Beggars' Sect",
+  16: "东海道心派 East-Sea Daoxin Sect", 18: "海鲨帮 Sea Shark Gang",
+  19: "万兽山庄 Myriad-Beast Manor", 20: "岭南四煞 Lingnan Four Fiends",
+  21: "红袖居 Red Sleeves Residence", 22: "红莲苦海教 Red Lotus Bitter Sea Cult",
+  23: "楞伽金刚宗 Lankavajra Sect", 24: "漕运帮 Canal Transport Gang",
+  25: "泾水城 Jingshui City", 26: "合欢宗 Joy Sect", 27: "东林书阁 Eastlin Library",
+  28: "方歆武馆 Fang Xin Dojo", 29: "大理城 Dali City", 30: "五毒教 Five Poisons Cult",
+  31: "七煞山庄 Seven Fiends Manor", 32: "金武卫 Gold Guard", 33: "百匪谷 Hundred-Bandits Valley",
+  34: "漠北 Northern Desert", 35: "神都城 Sacred Capital", 36: "大理王宫 Dali Royal Palace",
+  37: "静禅寺 Stillness Zen Temple", 38: "八通商局 Eight Trade Bureau",
+  101: "情缘 Romance", 102: "宠物 Pets", 103: "江湖 Wanderers",
+};
+
 const ITEM_COLUMNS = ["id", "name", "quality", "type", "type2", "value", "describe"];
 const MAX_ROWS = 200;
 
@@ -218,12 +239,40 @@ function bindItems() {
 // =========================================================================
 // Gifts panel: NPC-centric view of who likes/dislikes what
 // =========================================================================
-const gifts = { q: "" };
+const gifts = { q: "", group: 0 };  // group=0 means "all"
 
 function npcHasGiftData(npc) {
   return (npc.giftTypePrefer?.length || 0) > 0
       || (npc.giftIdPrefer?.length || 0) > 0
       || (npc.giftHate?.length || 0) > 0;
+}
+
+// Build the group <select> from groups actually present among named gift-able NPCs.
+// (Includes count per group, sorted by id. Unknown enum values get a "? unknown" label.)
+function populateGroupSelect() {
+  const sel = $("#npc-group-select");
+  sel.innerHTML = "";
+  // baseline pool: same filter as the grid, minus the group filter itself
+  const pool = data.npc
+    .filter(npcHasGiftData)
+    .map(n => ({ ...n, _name: npcDisplayName(n) }))
+    .filter(n => n._name !== `#${n.id}`);
+  const counts = new Map();
+  for (const n of pool) counts.set(n.group, (counts.get(n.group) || 0) + 1);
+
+  const allOpt = document.createElement("option");
+  allOpt.value = "0";
+  allOpt.textContent = `全部门派 All groups (${pool.length})`;
+  sel.appendChild(allOpt);
+
+  const sortedGroups = [...counts.keys()].sort((a, b) => a - b);
+  for (const g of sortedGroups) {
+    const opt = document.createElement("option");
+    opt.value = String(g);
+    const name = GROUP_NAME[g] || `${g} ? unknown`;
+    opt.textContent = `${name} (${counts.get(g)})`;
+    sel.appendChild(opt);
+  }
 }
 
 function renderNpcGrid() {
@@ -233,7 +282,8 @@ function renderNpcGrid() {
   const npcs = data.npc
     .filter(npcHasGiftData)
     .map(n => ({ ...n, _name: npcDisplayName(n) }))
-    .filter(n => n._name !== `#${n.id}`)  // hide unnamed (placeholders) — they aren't real characters players meet
+    .filter(n => n._name !== `#${n.id}`)
+    .filter(n => gifts.group === 0 || n.group === gifts.group)
     .filter(n => !q || n._name.toLowerCase().includes(q) || String(n.id).includes(q))
     .sort((a, b) => a._name.localeCompare(b._name, "zh-Hans-u-co-pinyin"));
 
@@ -249,6 +299,7 @@ function renderNpcGrid() {
     card.className = "npc-card";
     card.addEventListener("click", () => showModal(`${n._name} #${n.id}`, n));
 
+    const groupLabel = GROUP_NAME[n.group] || `${n.group} ? unknown`;
     const likes = (n.giftTypePrefer || []).map(t =>
       `<span class="tag-good">${GIFT_TYPE_NAME[t] || `?${t}`}</span>`).join("");
     const hates = (n.giftHate || []).map(t =>
@@ -258,7 +309,8 @@ function renderNpcGrid() {
 
     card.innerHTML = `
       <div class="npc-name">${n._name}</div>
-      <div class="npc-meta">id ${n.id}  ·  group ${n.group}  ·  evil ${n.evil ?? 0}</div>
+      <div class="npc-meta">id ${n.id}  ·  evil ${n.evil ?? 0}</div>
+      <div class="npc-group">${groupLabel}</div>
       ${likes ? `<div class="npc-likes"><span class="npc-likes-label">喜欢 Likes:</span>${likes}</div>` : ""}
       ${loves ? `<div class="npc-loves"><span class="npc-loves-label">尤爱 Loves:</span>${loves}</div>` : ""}
       ${hates ? `<div class="npc-hates"><span class="npc-hates-label">讨厌 Hates:</span>${hates}</div>` : ""}
@@ -268,6 +320,11 @@ function renderNpcGrid() {
 }
 
 function bindGifts() {
+  populateGroupSelect();
+  $("#npc-group-select").addEventListener("change", (e) => {
+    gifts.group = parseInt(e.target.value, 10) || 0;
+    renderNpcGrid();
+  });
   $("#npc-search").addEventListener("input", (e) => {
     gifts.q = e.target.value;
     renderNpcGrid();

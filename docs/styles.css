@@ -188,7 +188,18 @@ a:hover { color: var(--gold); }
   font-size: 11px;
   color: var(--parchment-2);
   font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+.npc-card .npc-group {
+  font-size: 11px;
+  color: var(--accent);
+  font-family: var(--font-zh);
   margin-bottom: 10px;
+  padding: 1px 8px;
+  display: inline-block;
+  border: 1px solid var(--gold-deep);
+  border-radius: 10px;
+  background: rgba(224, 168, 90, 0.08);
 }
 .npc-card .npc-likes, .npc-card .npc-hates, .npc-card .npc-loves {
   font-size: 12px;

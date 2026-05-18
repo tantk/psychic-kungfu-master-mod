@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 $repo = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $repo
 
-$plugin   = "plugin\bin\Release\net472\JinGuCheats.dll"
+$plugin   = "plugin\bin\Release\JinGuCheats.dll"
 $ui       = "ui\src-tauri\target\release\jingu-cheats-ui.exe"
 $preBat   = "tools\pre-launch.bat"
 $prePs1   = "tools\pre-launch.ps1"

@@ -22,6 +22,7 @@ REPO = Path(__file__).resolve().parent.parent
 MAPS_DIR = REPO / "data" / "branch-maps"
 ACHIEVE = REPO / "data" / "achieve.json"
 ITEM = REPO / "data" / "item.json"
+STORY_TREE = REPO / "data" / "branch-viewer" / "story-tree.json"
 OUT_DIR = REPO / "data" / "branch-viewer"
 OUT_FILE = OUT_DIR / "index.html"
 
@@ -114,7 +115,16 @@ def main() -> None:
         })
     print(f"loaded {len(achievements)} achievement/camp-change entries from summary")
 
-    html = build_html(graphs, achievements)
+    # Story tree (if pre-built by build-story-tree.py)
+    story_tree = None
+    if STORY_TREE.exists():
+        try:
+            story_tree = json.loads(STORY_TREE.read_text(encoding="utf-8"))
+            print(f"loaded story tree with {len(story_tree.get('chapters', []))} chapters")
+        except Exception as e:
+            print(f"failed to load story tree: {e}")
+
+    html = build_html(graphs, achievements, story_tree)
     OUT_FILE.write_text(html, encoding="utf-8")
     size_mb = OUT_FILE.stat().st_size / 1e6
     print(f"\nwrote {OUT_FILE}  ({size_mb:.1f} MB)")
@@ -122,10 +132,11 @@ def main() -> None:
     print("(or `python -m http.server` in that folder and visit http://localhost:8000/)")
 
 
-def build_html(graphs, achievements):
+def build_html(graphs, achievements, story_tree=None):
     # Embed data as JSON inside a script tag — JSON.parse is faster than JS literal
     graphs_json = json.dumps(graphs, ensure_ascii=False, separators=(',', ':'))
     achievements_json = json.dumps(achievements, ensure_ascii=False, separators=(',', ':'))
+    story_tree_json = json.dumps(story_tree or {}, ensure_ascii=False, separators=(',', ':'))
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -180,10 +191,21 @@ def build_html(graphs, achievements):
   <div class="sidebar">
     <h1>今古群侠传 · 剧情分支</h1>
     <div class="mode-tabs">
-      <button class="active" data-mode="graphs">分支图 ({len(graphs)})</button>
-      <button data-mode="achievements">成就路径 ({len(achievements)})</button>
+      <button class="active" data-mode="story">📖 故事树</button>
+      <button data-mode="graphs">分支图 ({len(graphs)})</button>
+      <button data-mode="achievements">成就 ({len(achievements)})</button>
     </div>
-    <div class="filters" id="filters-graphs">
+    <div class="filters" id="filters-story">
+      <p style="font-size:12px;color:#8e7a4e;margin:4px 0">
+        全局故事流程图,从 Niu 家村出发,经过 41 个章节(Interlude),最终在 Interlude_36 分岔为 9 个结局。
+      </p>
+      <p style="font-size:11px;color:#6a553a;margin:4px 0">
+        ⚖️ = 有玩家选择的章节<br>
+        🏆 = 触发成就的章节<br>
+        💎 = 最终结局抉择
+      </p>
+    </div>
+    <div class="filters" id="filters-graphs" style="display:none">
       <input id="q-graphs" placeholder="搜索图名 / id...">
       <select id="sort-graphs">
         <option value="branches">按分支点数排序</option>
@@ -209,6 +231,7 @@ def build_html(graphs, achievements):
 <script>
 const GRAPHS = JSON.parse(document.getElementById('graph-data').textContent);
 const ACHIEVEMENTS = JSON.parse(document.getElementById('ach-data').textContent);
+const STORY_TREE = JSON.parse(document.getElementById('story-data').textContent);
 
 mermaid.initialize({{ startOnLoad: false, theme: 'dark', themeVariables: {{
   primaryColor: '#221c14', primaryTextColor: '#e9dab2',
@@ -216,7 +239,7 @@ mermaid.initialize({{ startOnLoad: false, theme: 'dark', themeVariables: {{
   secondaryColor: '#2a2117', tertiaryColor: '#3a2f1f',
 }}, flowchart: {{ useMaxWidth: false, htmlLabels: true, curve: 'basis' }} }});
 
-let mode = 'graphs';
+let mode = 'story';
 let activeIdx = null;
 
 function $(s) {{ return document.querySelector(s); }}
@@ -226,6 +249,45 @@ function renderSidebar() {{
   const list = $('#list');
   const count = $('#count');
   list.innerHTML = '';
+  if (mode === 'story') {{
+    // Render the full story-tree mermaid into the main area; sidebar shows chapter list.
+    count.textContent = `${{STORY_TREE.chapters ? STORY_TREE.chapters.length : 0}} chapters`;
+    if (STORY_TREE.chapters) {{
+      STORY_TREE.chapters.forEach((ch) => {{
+        const el = document.createElement('div');
+        el.className = 'item';
+        const hasChoices = ch.choices && ch.choices.length > 0;
+        const hasAch = ch.achievements && ch.achievements.length > 0;
+        const isFinal = ch.n === 36;
+        el.innerHTML = `
+          <div class="name">${{isFinal ? '💎 ' : (hasChoices ? '⚖️ ' : '')}}Interlude_${{ch.n}}</div>
+          <div class="meta">
+            <span class="badge">${{ch.node_count}} nodes</span>
+            ${{hasChoices ? `<span class="badge choice">${{ch.choices.length}} choice</span>` : ''}}
+            ${{hasAch ? `<span class="badge achieve">${{ch.achievements.length}} ach</span>` : ''}}
+            ${{ch.romance_npcs && ch.romance_npcs.length ? `<span class="badge">${{ch.romance_npcs.length}} romance checks</span>` : ''}}
+          </div>`;
+        el.addEventListener('click', () => {{
+          // Jump to the chapter's full graph in graphs mode
+          const matchPid = `Interlude_${{ch.n}}`;
+          const g = GRAPHS.find(x => x.name === matchPid);
+          if (g) {{
+            mode = 'graphs';
+            activeIdx = g.pid;
+            $$('.mode-tabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'graphs'));
+            $('#filters-story').style.display = 'none';
+            $('#filters-graphs').style.display = 'flex';
+            $('#filters-ach').style.display = 'none';
+            renderSidebar();
+            selectGraph(g);
+          }}
+        }});
+        list.appendChild(el);
+      }});
+    }}
+    renderStoryTree();
+    return;
+  }}
   if (mode === 'graphs') {{
     const q = $('#q-graphs').value.toLowerCase().trim();
     const sort = $('#sort-graphs').value;
@@ -275,6 +337,33 @@ function renderSidebar() {{
       el.addEventListener('click', () => {{ activeIdx = 'ach-' + a.id; selectAchievement(a); renderSidebar(); }});
       list.appendChild(el);
     }});
+  }}
+}}
+
+function renderStoryTree() {{
+  const main = $('#render');
+  if (!STORY_TREE.mermaid) {{
+    main.innerHTML = '<div class="empty">Story tree not built. Run: <code>python tools/build-story-tree.py</code></div>';
+    return;
+  }}
+  main.innerHTML = `
+    <div class="header">
+      <h2>📖 全局故事树 · Full Story Tree</h2>
+      <div class="stats">${{STORY_TREE.chapters.length}} chapters · 9 endings</div>
+    </div>
+    <p style="color:#8e7a4e;font-size:13px;max-width:700px;line-height:1.6">
+      Linear sequence of 41 Interlude chapters with branch points highlighted. The final cutscene
+      (💎 Interlude_36) fans out into 9 endings determined by accumulated state (romance choices,
+      alignment, faction loyalty). Click a chapter in the sidebar to jump to its detailed graph.
+    </p>
+    <div class="render-area" style="overflow:auto;max-height:75vh;">
+      <div id="story-mermaid" class="mermaid">${{escapeHtml(STORY_TREE.mermaid)}}</div>
+    </div>`;
+  try {{
+    mermaid.run({{ nodes: [document.getElementById('story-mermaid')] }});
+  }} catch (e) {{
+    $('#story-mermaid').parentElement.innerHTML =
+      `<div style="color:#d96a5d">渲染失败: ${{e.message}}</div><pre style="font-size:11px;color:#8e7a4e;white-space:pre-wrap">${{escapeHtml(STORY_TREE.mermaid)}}</pre>`;
   }}
 }}
 
@@ -329,6 +418,7 @@ $$('.mode-tabs button').forEach(btn => btn.addEventListener('click', () => {{
   $$('.mode-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   mode = btn.dataset.mode;
+  $('#filters-story').style.display = mode === 'story' ? 'flex' : 'none';
   $('#filters-graphs').style.display = mode === 'graphs' ? 'flex' : 'none';
   $('#filters-ach').style.display = mode === 'achievements' ? 'flex' : 'none';
   activeIdx = null;
@@ -345,6 +435,7 @@ renderSidebar();
 </script>
 <script id="graph-data" type="application/json">{graphs_json}</script>
 <script id="ach-data" type="application/json">{achievements_json}</script>
+<script id="story-data" type="application/json">{story_tree_json}</script>
 </body>
 </html>
 """

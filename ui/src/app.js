@@ -1156,11 +1156,13 @@ function renderCell(value) {
 }
 
 function renderItemRows(rows) {
-  $("#data-table-head").innerHTML = ITEM_COLUMNS.map(c => {
+  // Columns + a trailing "actions" header (non-sortable)
+  const headerHtml = ITEM_COLUMNS.map(c => {
     const isActive = c === sortKey;
     const arrow = isActive ? (sortDir === "asc" ? " ▲" : " ▼") : "";
     return `<th class="th-sortable${isActive ? ' th-sorted' : ''}" data-col="${c}">${c}${arrow}</th>`;
-  }).join("");
+  }).join("") + `<th class="th-actions">操作</th>`;
+  $("#data-table-head").innerHTML = headerHtml;
   const body = $("#data-table-body");
   body.innerHTML = "";
   $("#data-empty").hidden = rows.length > 0;
@@ -1174,7 +1176,6 @@ function renderItemRows(rows) {
                   : (c === "describe" || c === "desc" || c === "des") ? "col-desc"
                   : "";
       if (klass) td.className = klass;
-      // Show the enum name for type/type2 instead of the raw int.
       let display;
       if (c === "type")  display = TYPE_NAME[row.type]   ?? row.type;
       else if (c === "type2") display = TYPE2_NAME[row.type2] ?? row.type2;
@@ -1183,8 +1184,38 @@ function renderItemRows(rows) {
       td.title = display;
       tr.appendChild(td);
     });
+    // Trailing actions cell: quick-add (smart, top quality) + details (open modal).
+    // Both stopPropagation so they don't fire the row's modal-open click.
+    const actions = document.createElement("td");
+    actions.className = "col-actions";
+    actions.innerHTML =
+      `<button class="row-btn row-btn-quick" data-act="quick" title="一键添加最佳品质">★ 添加</button>` +
+      `<button class="row-btn row-btn-detail" data-act="detail" title="打开详情面板,选择数量/品质/锻造">详情</button>`;
+    tr.appendChild(actions);
     body.appendChild(tr);
   });
+}
+
+// Quick-add: smart enough to pick the right command for the row's category.
+// - 丹方 (type2 = 12): skip_alchemy at tier 2 (上品 top quality)
+// - 图纸 (type2 = 13): skip_forging (single quality)
+// - everything else:    give_item, quantity 1
+async function quickAddRow(row) {
+  if (!row || row.id == null) return;
+  try {
+    let cmd, args;
+    if (row.type2 === 12) {
+      cmd = "skip_alchemy"; args = { recipe: row.id, tier: 2 };
+    } else if (row.type2 === 13) {
+      cmd = "skip_forging"; args = { recipe: row.id };
+    } else {
+      cmd = "give_item"; args = { id: row.id, num: 1 };
+    }
+    const res = await apiCmd({ cmd, ...args });
+    setStatus(res.ok ? `✓ ${res.message ?? cmd}` : `× ${res.message ?? cmd}`, res.ok ? "ok" : "err");
+  } catch (e) {
+    setStatus(`${e}`, "err");
+  }
 }
 
 function filterItems(rows, type, type2, query) {
@@ -1415,7 +1446,18 @@ async function bindDataBrowser() {
     const tr = e.target.closest("tr[data-idx]");
     if (!tr) return;
     const row = currentRows[+tr.dataset.idx];
-    if (row) showDataDetail(row);
+    if (!row) return;
+    // Route per-action via data-act on the clicked button. Plain row clicks
+    // (anywhere not on the action buttons) still open the details modal —
+    // preserves the old behavior for anyone who learned it.
+    const actBtn = e.target.closest("button[data-act]");
+    if (actBtn) {
+      e.stopPropagation();
+      if (actBtn.dataset.act === "quick") quickAddRow(row);
+      else if (actBtn.dataset.act === "detail") showDataDetail(row);
+      return;
+    }
+    showDataDetail(row);
   });
 
   $("#data-detail-close").addEventListener("click", () => {

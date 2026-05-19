@@ -894,6 +894,47 @@ code {
   font-style: italic;
   font-size: 11px;
 }
+/* Row action buttons — small inline pair: quick-add + open-details. */
+.data-table thead th.th-actions {
+  text-align: center;
+  cursor: default;
+}
+.data-table thead th.th-actions:hover {
+  background: var(--ink-2);
+  color: var(--gold);
+}
+.data-table tbody td.col-actions {
+  white-space: nowrap;
+  text-align: right;
+  padding: 4px 8px;
+  width: 1%;
+}
+.row-btn {
+  display: inline-block;
+  background: linear-gradient(180deg, rgba(42, 33, 23, 0.7), rgba(28, 23, 15, 0.85));
+  color: var(--parchment-0);
+  border: 1px solid var(--ink-edge);
+  border-radius: 2px;
+  padding: 2px 8px;
+  margin-left: 4px;
+  font-family: var(--font-zh);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.row-btn:hover {
+  border-color: var(--gold-deep);
+  color: var(--gold);
+}
+.row-btn-quick {
+  background: linear-gradient(180deg, rgba(193, 70, 58, 0.6), rgba(135, 42, 34, 0.75));
+  border-color: var(--vermillion-deep);
+}
+.row-btn-quick:hover {
+  background: linear-gradient(180deg, var(--vermillion), var(--vermillion-deep));
+  color: var(--parchment-0);
+  border-color: var(--gold);
+}
 .data-empty {
   padding: 40px;
   text-align: center;

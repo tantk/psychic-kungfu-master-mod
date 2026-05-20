@@ -28,6 +28,7 @@ public class Plugin : MelonMod
     internal static MelonPreferences_Entry<KeyCode> CfgKeyFreezeTime  = null!;
     internal static MelonPreferences_Entry<bool> CfgAutoLaunchUi = null!;
     internal static MelonPreferences_Entry<bool> CfgAutoLoadSave = null!;
+    internal static MelonPreferences_Entry<bool> CfgAutoWeiTuo  = null!;
 
     private PipeServer? _server;
     private static UpdateDriver? _driver;
@@ -67,6 +68,7 @@ public class Plugin : MelonMod
             CfgFreeActions = cheats.CreateEntry("FreeActions", false, description: "CostAction calls do nothing");
             CfgGodMode     = cheats.CreateEntry("GodMode",     false, description: "Friendly Roles take 0 damage");
             CfgFreezeTime  = cheats.CreateEntry("FreezeTime",  false, description: "Stop world clock from advancing");
+            CfgAutoWeiTuo  = cheats.CreateEntry("AutoWeiTuo",  false, description: "Auto-publish + auto-collect 发布委托 sect commissions on each game-time tick");
 
             Log.Msg("STEP 3: creating Hotkeys preferences (no defaults — user binds via UI)...");
             var keys = MelonPreferences.CreateCategory("Hotkeys");

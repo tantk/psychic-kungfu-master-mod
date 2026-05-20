@@ -649,6 +649,27 @@
       <!-- Sect panel -->
       <article class="panel" id="panel-sect">
         <h2 class="panel-h">门派编辑 <svg class="brush-underline"><use href="#brushUnderline"/></svg></h2>
+
+        <h3 class="panel-h2">自动委托 · Auto-publish Commissions</h3>
+        <div class="toggles">
+          <label class="toggle">
+            <input type="checkbox" data-toggle="auto_wei_tuo" />
+            <span class="toggle-track"></span>
+            <span class="toggle-label">自动发布并领取委托 <em>Auto-publish + auto-collect 发布委托</em></span>
+          </label>
+        </div>
+        <p class="muted" style="margin-top:-6px;margin-bottom:8px">
+          On every in-game time tick: collects any commission whose 弟子 has returned, then dispatches every idle commission up to the simultaneous limit. Each collected reward is logged below — for 江湖情报 items the actual lore content is inlined so you can read it directly.
+        </p>
+        <div class="wei-tuo-log-controls">
+          <span class="wei-tuo-log-label">收获日志 · Collection log <span id="wei-tuo-log-count">(0)</span></span>
+          <button class="btn-small" id="wei-tuo-log-clear">清空 / Clear</button>
+        </div>
+        <div class="wei-tuo-log" id="wei-tuo-log">
+          <div class="wei-tuo-log-empty">还没有收获. Enable the toggle and let some in-game time pass — collected items will appear here.</div>
+        </div>
+
+        <h3 class="panel-h2">门派编辑 · Sect Editor</h3>
         <p class="muted" style="margin-bottom:10px">Each card is a faction. Click to view membership + mass-edit favor toward all NPCs of that sect.</p>
         <div class="npc-controls">
           <input id="sect-search" class="data-search" type="text" placeholder="搜索门派 / search sect…" />

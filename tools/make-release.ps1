@@ -44,6 +44,8 @@ Copy-Item $prePs1       "$out\pre-launch.ps1"
 Copy-Item $installBat   "$out\install.bat"
 Copy-Item $uninstallBat "$out\uninstall.bat"
 Copy-Item $melonZip     "$out\MelonLoader.x64.zip"
+Copy-Item "tools\JinGu-Doctor.bat" "$out\JinGu-Doctor.bat"
+Copy-Item "tools\jingu-doctor.ps1" "$out\jingu-doctor.ps1"
 Copy-Item "README.md"   "$out\README.md"
 Copy-Item "LICENSE"     "$out\LICENSE"
 

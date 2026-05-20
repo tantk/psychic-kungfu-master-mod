@@ -66,6 +66,23 @@ internal static class Json
             return Field(key, inner.ToString());
         }
 
+        public Obj AddStringList(string key, System.Collections.Generic.List<string> list)
+        {
+            var inner = new StringBuilder("[");
+            bool first = true;
+            if (list != null)
+            {
+                foreach (var s in list)
+                {
+                    if (!first) inner.Append(',');
+                    inner.Append(Quote(s ?? ""));
+                    first = false;
+                }
+            }
+            inner.Append(']');
+            return Field(key, inner.ToString());
+        }
+
         private Obj Field(string key, string rawValue)
         {
             if (!_first) _sb.Append(',');

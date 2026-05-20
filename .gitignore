@@ -14,6 +14,9 @@
 # === Release artifacts (built by tools/make-release.ps1, uploaded to GitHub Releases) ===
 /release/
 
+# === Third-party analysis tools downloaded locally (regeneratable) ===
+/tools/AssetStudioMod/
+
 # === Rust build artifacts (Tauri UI) ===
 ui/src-tauri/target/
 ui/src-tauri/Cargo.lock.bak

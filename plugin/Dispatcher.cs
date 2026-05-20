@@ -68,6 +68,7 @@ internal static class Dispatcher
                     .AddDict("toggles", snap.toggles)
                     .AddDict("hotkeys", hotkeys)
                     .AddDict("effects", snap.effects)
+                    .AddStringList("wei_tuo_log", snap.wei_tuo_log)
                     .ToString();
             }
 
@@ -132,6 +133,10 @@ internal static class Dispatcher
             case "clear_errors":
                 ErrorLog.Clear();
                 return Ok("error log cleared");
+
+            case "clear_wei_tuo_log":
+                Cheats.ClearWeiTuoLog();
+                return Ok("auto-委托 log cleared");
 
             case "set_hotkey":
             {

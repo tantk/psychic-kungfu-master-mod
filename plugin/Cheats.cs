@@ -61,6 +61,7 @@ internal static class Cheats
                 ["god_mode"]        = Plugin.CfgGodMode.Value,
                 ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
                 ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
+                ["auto_wei_tuo"]    = Plugin.CfgAutoWeiTuo.Value,
             }
         };
     }
@@ -83,6 +84,9 @@ internal static class Cheats
         // Effect values surfaced for inline live-value badges in the UI (Option A from the
         // value-audit table). Each id here gets a single GetEffectValue() per poll — cheap.
         public Dictionary<int, float> effects = new();
+        // Rolling auto-委托 collection log so the player can read intel notes returned
+        // by their disciples without manually opening each item.
+        public List<string> wei_tuo_log = new();
     }
 
     // EffectIds whose live value the state snapshot exposes — drives the UI's inline
@@ -121,6 +125,7 @@ internal static class Cheats
                 ["god_mode"]        = Plugin.CfgGodMode.Value,
                 ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
                 ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
+                ["auto_wei_tuo"]    = Plugin.CfgAutoWeiTuo.Value,
             }
         };
 
@@ -142,6 +147,7 @@ internal static class Cheats
         s.tili_max      = save.GetEffectValueInt(EffectId.体力上限);
         foreach (var id in PolledEffectIds)
             s.effects[id] = save.GetEffectValue((EffectId)id);
+        s.wei_tuo_log = SnapshotWeiTuoLog();
         return s;
     }
 
@@ -252,6 +258,169 @@ internal static class Cheats
         return $"maxed {count} wuxue skills";
     }
 
+    // Rolling log of what auto-委托 has collected — surfaced to the UI so the player
+    // can read the new intel notes / loot without opening every 读物 item by hand.
+    // Bounded queue (oldest entries drop off). Reset only on plugin reload.
+    private static readonly System.Collections.Generic.Queue<string> _weiTuoLog = new();
+    private const int WEI_TUO_LOG_MAX = 60;
+    public static void ClearWeiTuoLog() { lock (_weiTuoLog) _weiTuoLog.Clear(); }
+    public static System.Collections.Generic.List<string> SnapshotWeiTuoLog()
+    {
+        lock (_weiTuoLog) return new System.Collections.Generic.List<string>(_weiTuoLog);
+    }
+    private static void AppendWeiTuoLog(string msg)
+    {
+        lock (_weiTuoLog)
+        {
+            _weiTuoLog.Enqueue(msg);
+            while (_weiTuoLog.Count > WEI_TUO_LOG_MAX) _weiTuoLog.Dequeue();
+        }
+    }
+
+    // 发布委托 auto-tick: collects everything ready, then dispatches up to the limit.
+    // Driven from UpdateDriver. No throttle — work is cheap (6 commission ids in the
+    // table) and the operations are idempotent: PostReceived guards re-dispatch and
+    // the completion check is a Turn comparison. We DO throttle the diagnostic log to
+    // avoid spam, and only log when the toggle is on (to avoid noise from off-state).
+    private static float _lastWeiTuoLog;
+    private static int _lastWeiTuoDispatched;
+    private static int _lastWeiTuoCollected;
+    public static void AutoWeiTuoTick()
+    {
+        if (!Plugin.CfgAutoWeiTuo.Value) return;
+        var save = Save;
+        if (save == null) return;
+        int turn = save.Turn;
+
+        var dic = DBLoad.ReceivePost.Dic;
+        if (dic == null || dic.Count == 0)
+        {
+            MaybeLog($"[auto_wei_tuo] ReceivePost.Dic is empty (count={(dic?.Count ?? 0)}) — table not loaded yet?");
+            return;
+        }
+
+        // Stable id snapshot — ReceivePost / GetPost mutate save state but not this table.
+        var ids = new System.Collections.Generic.List<int>(dic.Keys);
+
+        // Pass 1: collect anything completed (frees up dispatch slots first).
+        // For each collection we capture the reward by diffing inventory counts on the
+        // commission's possible reward+trash ids before and after the call — the changed
+        // entry is what GetPost gave us. Then we append a log line the UI can read.
+        int collected = 0;
+        foreach (var id in ids)
+        {
+            if (save.PostReceived(id))
+            {
+                var info = DBLoad.ReceivePost.Get(id);
+                if (info != null && turn - save.GetPostBegin(id) >= info.m_time)
+                {
+                    // Pre-snapshot of candidate item counts (rewards + trash)
+                    var watchIds = new System.Collections.Generic.HashSet<int>();
+                    if (info.m_rewardId != null) foreach (var w in info.m_rewardId) watchIds.Add(w);
+                    if (info.m_trashId != null)  foreach (var w in info.m_trashId)  watchIds.Add(w);
+                    var before = new System.Collections.Generic.Dictionary<int, int>();
+                    foreach (var wid in watchIds) before[wid] = save.GetItemNum(wid);
+
+                    try
+                    {
+                        save.GetPost(id);
+                        collected++;
+                        LogCollectionDiff(info, watchIds, before, save);
+                    }
+                    catch (System.Exception e) { ErrorLog.Record("auto_wei_tuo:collect", e); }
+                }
+            }
+        }
+
+        // Pass 2: dispatch any idle commission, up to the simultaneous limit.
+        int limit = save.GetEffectValueInt(EffectId.同时发布委托个数);
+        int active = 0;
+        foreach (var id in ids) if (save.PostReceived(id)) active++;
+        int dispatched = 0;
+        foreach (var id in ids)
+        {
+            if (active >= limit) break;
+            if (save.PostReceived(id)) continue;
+            try
+            {
+                if (save.ReceivePost(id)) { active++; dispatched++; }
+            }
+            catch (System.Exception e) { ErrorLog.Record("auto_wei_tuo:dispatch", e); }
+        }
+
+        // Log when something actually happened, OR periodically state-dump for diagnostics.
+        if (dispatched > 0 || collected > 0)
+        {
+            Plugin.Log.Msg($"[auto_wei_tuo] turn {turn}: collected {collected}, dispatched {dispatched} (active {active}/{limit})");
+            _lastWeiTuoDispatched += dispatched;
+            _lastWeiTuoCollected += collected;
+        }
+        else
+        {
+            // Once every 10 seconds of wall time, log the current state so we can see why nothing's happening
+            float now = UnityEngine.Time.realtimeSinceStartup;
+            if (now - _lastWeiTuoLog > 10f)
+            {
+                _lastWeiTuoLog = now;
+                Plugin.Log.Msg($"[auto_wei_tuo] turn {turn}, table={ids.Count}, active={active}/{limit}, totals collected={_lastWeiTuoCollected} dispatched={_lastWeiTuoDispatched}");
+            }
+        }
+    }
+
+    private static void MaybeLog(string msg)
+    {
+        float now = UnityEngine.Time.realtimeSinceStartup;
+        if (now - _lastWeiTuoLog > 5f)
+        {
+            _lastWeiTuoLog = now;
+            Plugin.Log.Msg(msg);
+        }
+    }
+
+    // Given the pre-call snapshot of candidate item counts, find what GetPost added and
+    // build a human-readable log entry. For 江湖情报 (and any item with an Information
+    // table entry), we inline the actual lore text so the player can read it directly.
+    private static void LogCollectionDiff(
+        DBLoad.ReceivePostData info,
+        System.Collections.Generic.HashSet<int> watchIds,
+        System.Collections.Generic.Dictionary<int, int> before,
+        SaveData save)
+    {
+        string commissionName = SafeStr(info.m_name);
+        foreach (var wid in watchIds)
+        {
+            int after = save.GetItemNum(wid);
+            int delta = after - (before.TryGetValue(wid, out var b) ? b : 0);
+            if (delta <= 0) continue;
+
+            string itemName = "?";
+            var itemData = DBLoad.Item.Get(wid);
+            if (itemData != null) itemName = SafeStr(itemData.m_name);
+
+            string content = "";
+            var infoEntry = DBLoad.Information.Get(wid);
+            if (infoEntry != null && !string.IsNullOrEmpty(infoEntry.m_desc))
+            {
+                string desc = SafeStr(infoEntry.m_desc);
+                // Trim newlines so the log row stays one logical entry
+                content = "  →  " + desc.Replace("\n", " · ").Replace("\r", "");
+            }
+
+            string stamp = System.DateTime.Now.ToString("HH:mm:ss");
+            string msg = $"[{stamp}] {commissionName}  ⇒  {itemName} #{wid} ×{delta}{content}";
+            AppendWeiTuoLog(msg);
+            // Also mirror to the MelonLoader log for offline review
+            Plugin.Log.Msg($"[auto_wei_tuo] {msg}");
+        }
+    }
+
+    private static string SafeStr(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "";
+        try { return LanguageUtils.GetStr(raw) ?? raw; }
+        catch { return raw; }
+    }
+
     public static string RefillEnergy(bool jingli, bool tili)
     {
         var save = Save;
@@ -287,6 +456,7 @@ internal static class Cheats
             case "god_mode":       Plugin.CfgGodMode.Value      = value; break;
             case "freeze_time":    Plugin.CfgFreezeTime.Value   = value; break;
             case "auto_launch_ui": Plugin.CfgAutoLaunchUi.Value = value; break;
+            case "auto_wei_tuo":   Plugin.CfgAutoWeiTuo.Value   = value; break;
             default: return $"unknown toggle '{name}'";
         }
         return $"{name} = {value}";

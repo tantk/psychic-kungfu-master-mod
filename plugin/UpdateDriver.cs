@@ -79,7 +79,15 @@ internal sealed class UpdateDriver : MonoBehaviour
             }
         }
 
-        // 4. Hotkeys — only fire if user has bound a key
+        // 4. Auto-publish/collect sect commissions (no-op unless toggle is on
+        // AND the game-Turn has advanced — Cheats.AutoWeiTuoTick self-throttles).
+        if (idx > 1 && SaveManager.Instance != null)
+        {
+            try { Cheats.AutoWeiTuoTick(); }
+            catch (System.Exception e) { ErrorLog.Record("auto_wei_tuo:tick", e); }
+        }
+
+        // 5. Hotkeys — only fire if user has bound a key
         if (Plugin.CfgKeyMaxMoney.Value    != KeyCode.None && Hotkey.Pressed(Plugin.CfgKeyMaxMoney.Value))    Plugin.TogglePublic(Plugin.CfgMaxMoney,    "Max Money");
         if (Plugin.CfgKeyFreeActions.Value != KeyCode.None && Hotkey.Pressed(Plugin.CfgKeyFreeActions.Value)) Plugin.TogglePublic(Plugin.CfgFreeActions, "Free Actions");
         if (Plugin.CfgKeyGodMode.Value     != KeyCode.None && Hotkey.Pressed(Plugin.CfgKeyGodMode.Value))     Plugin.TogglePublic(Plugin.CfgGodMode,     "God Mode");

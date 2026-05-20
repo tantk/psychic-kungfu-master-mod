@@ -151,6 +151,7 @@ async function poll() {
     if (s.hotkeys) {
       for (const [k, v] of Object.entries(s.hotkeys)) renderHotkey(k, v);
     }
+    if (Array.isArray(s.wei_tuo_log)) renderWeiTuoLog(s.wei_tuo_log);
     if (typeof s.error_count === "number") renderErrorBadge(s.error_count);
   } catch (e) {
     setConnected(false, "未连接");
@@ -263,6 +264,37 @@ async function applyEffectToggle(cb) {
     setStatus(`set_effect ${id}: ${e}`, "err");
     cb.checked = !cb.checked;  // revert the visual on failure
   }
+}
+
+let _lastWeiTuoLogJson = "";
+function renderWeiTuoLog(entries) {
+  // Cheap dirty-check — the log is a list of complete formatted strings, so a
+  // JSON.stringify diff avoids rebuilding the DOM on every poll when nothing changed.
+  const json = JSON.stringify(entries);
+  if (json === _lastWeiTuoLogJson) return;
+  _lastWeiTuoLogJson = json;
+  const box = $("#wei-tuo-log");
+  const count = $("#wei-tuo-log-count");
+  if (!box) return;
+  if (count) count.textContent = `(${entries.length})`;
+  if (entries.length === 0) {
+    box.innerHTML = `<div class="wei-tuo-log-empty">还没有收获. Enable the toggle and let some in-game time pass — collected items will appear here.</div>`;
+    return;
+  }
+  // Newest at top — entries are appended chronologically server-side, so reverse for display
+  const html = entries.slice().reverse()
+    .map(e => `<div class="wei-tuo-log-entry">${escapeForLog(e)}</div>`)
+    .join("");
+  box.innerHTML = html;
+  box.scrollTop = 0;  // bring newest into view
+}
+
+function escapeForLog(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function bindToggles() {
@@ -436,6 +468,16 @@ function bindErrorLog() {
       await apiClearErrors();
       setStatus("错误日志已清空", "ok");
       renderErrorBadge(0);
+    } catch (e) { setStatus(`清空失败: ${e}`, "err"); }
+  });
+  // Auto-委托 log clear button (same tab, same UX pattern)
+  const wtClear = $("#wei-tuo-log-clear");
+  if (wtClear) wtClear.addEventListener("click", async () => {
+    try {
+      await apiCmd({ cmd: "clear_wei_tuo_log" });
+      _lastWeiTuoLogJson = "";  // force re-render
+      renderWeiTuoLog([]);
+      setStatus("收获日志已清空", "ok");
     } catch (e) { setStatus(`清空失败: ${e}`, "err"); }
   });
   $("#error-modal-close").addEventListener("click", () => {
@@ -1269,12 +1311,43 @@ function rebuildType2Select(mainType) {
   else { sel.value = "0"; currentType2Filter = 0; }
 }
 
+// Lazy index of information.json — built on first 读物 modal open.
+// Maps item id → desc string (the actual readable content; the item table's
+// `describe` field for 江湖情报 etc. is generic "打开看看" filler).
+let informationByItemId = null;
+async function ensureInformationIndex() {
+  if (informationByItemId) return;
+  try {
+    const rows = await loadDataTable("information");
+    informationByItemId = Object.create(null);
+    for (const r of rows) {
+      if (r.id != null && r.desc) informationByItemId[r.id] = r.desc;
+    }
+  } catch (e) {
+    console.warn("information.json load failed:", e);
+    informationByItemId = {};
+  }
+}
+
 let givePendingRow = null;
-function showDataDetail(row) {
+async function showDataDetail(row) {
   givePendingRow = row;
   $("#data-detail-title").textContent =
     `#${row.id ?? "?"} ${row.name ?? ""}`.trim();
-  $("#data-detail-pre").textContent = JSON.stringify(row, null, 2);
+  // For 读物 items (type2 = 18), surface the actual lore content above the raw JSON.
+  // The describe field on the item itself is generic filler; the real content lives in
+  // information.json keyed by item id (51 of the 55 reading items have an entry).
+  let header = "";
+  if (row.type2 === 18 && row.id != null) {
+    await ensureInformationIndex();
+    const content = informationByItemId?.[row.id];
+    if (content) {
+      header = `\n📜 内容 / Content\n${"─".repeat(50)}\n${content}\n${"─".repeat(50)}\n\n`;
+    } else {
+      header = `\n📜 (no information.json entry for this item — may be a placeholder)\n\n`;
+    }
+  }
+  $("#data-detail-pre").textContent = header + JSON.stringify(row, null, 2);
   // Every row in the items tab is a real item — give-to-inventory always applies.
   const showGive = row.id != null;
   $("#give-action").hidden = !showGive;

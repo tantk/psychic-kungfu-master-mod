@@ -65,6 +65,8 @@ Source: "..\ui\src-tauri\target\release\jingu-cheats-ui.exe"; DestDir: "{app}\Mo
 Source: "..\tools\pre-launch.bat"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\tools\pre-launch.ps1"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\installer\uninstall.bat"; DestDir: "{app}\Mods"; Flags: ignoreversion
+Source: "..\tools\jingu-doctor.ps1"; DestDir: "{app}\Mods"; Flags: ignoreversion
+Source: "..\tools\JinGu-Doctor.bat"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\downloads\MelonLoader.x64.zip"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "..\README.md"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}\Mods"; DestName: "JinGuCheats-LICENSE"; Flags: ignoreversion

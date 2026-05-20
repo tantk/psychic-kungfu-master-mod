@@ -43,7 +43,33 @@ foreach ($f in "mscorlib.dll","System.dll","System.Core.dll","System.Runtime.dll
   }
 }
 
-if ($restored -eq 0) { W "  all corlibs already patched (no action)" }
-else                 { W "  restored $restored corlib(s)" }
+if ($restored -eq 0) {
+  W "  all corlibs already patched (no action)"
+} else {
+  W "  restored $restored corlib(s)"
+  # Spawn a background notifier so the user sees that Steam reverted files. We
+  # detach (no -Wait) so pre-launch returns immediately and Steam can keep going.
+  $notifierScript = @"
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+`$n = New-Object System.Windows.Forms.NotifyIcon
+`$n.Icon = [System.Drawing.SystemIcons]::Information
+`$n.Visible = `$true
+`$n.BalloonTipTitle = 'JinGu Cheats'
+`$n.BalloonTipText = 'Steam reverted $restored Mono runtime file(s) - restored automatically.'
+`$n.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+`$n.ShowBalloonTip(7000)
+Start-Sleep -Seconds 8
+`$n.Dispose()
+"@
+  try {
+    $tmpFile = Join-Path $env:TEMP "jingu-cheats-notify-$([guid]::NewGuid().ToString('N')).ps1"
+    $notifierScript | Out-File -FilePath $tmpFile -Encoding UTF8
+    Start-Process -FilePath powershell.exe -WindowStyle Hidden -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File",$tmpFile | Out-Null
+    W "  notification spawned"
+  } catch {
+    W "  notification failed (non-fatal): $_"
+  }
+}
 W "--- pre-launch done ---"
 exit 0

@@ -133,6 +133,8 @@ copy /Y "%~dp0JinGuCheats.dll"     "!GAME_DIR!\Mods\" >nul
 copy /Y "%~dp0jingu-cheats-ui.exe" "!GAME_DIR!\Mods\" >nul
 copy /Y "%~dp0pre-launch.bat"      "!GAME_DIR!\Mods\" >nul
 copy /Y "%~dp0pre-launch.ps1"      "!GAME_DIR!\Mods\" >nul
+if exist "%~dp0JinGu-Doctor.bat" copy /Y "%~dp0JinGu-Doctor.bat" "!GAME_DIR!\Mods\" >nul
+if exist "%~dp0jingu-doctor.ps1" copy /Y "%~dp0jingu-doctor.ps1" "!GAME_DIR!\Mods\" >nul
 
 echo.
 echo =========================================================

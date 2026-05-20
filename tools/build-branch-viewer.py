@@ -184,7 +184,7 @@ def build_html(graphs, achievements, story_tree=None):
   .ach-path .path-text {{ color: #b6c4b0; }}
   .count {{ color: #8e7a4e; padding: 6px 12px; font-size: 11px; border-bottom: 1px solid #3a2f1f; font-family: monospace; }}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="mermaid.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -227,6 +227,11 @@ def build_html(graphs, achievements, story_tree=None):
     <div id="render"><div class="empty">← pick a graph or achievement from the sidebar</div></div>
   </div>
 </div>
+
+<!-- Embedded data — MUST come before the main script that reads them -->
+<script id="graph-data" type="application/json">{graphs_json}</script>
+<script id="ach-data" type="application/json">{achievements_json}</script>
+<script id="story-data" type="application/json">{story_tree_json}</script>
 
 <script>
 const GRAPHS = JSON.parse(document.getElementById('graph-data').textContent);
@@ -433,9 +438,6 @@ $$('.mode-tabs button').forEach(btn => btn.addEventListener('click', () => {{
 
 renderSidebar();
 </script>
-<script id="graph-data" type="application/json">{graphs_json}</script>
-<script id="ach-data" type="application/json">{achievements_json}</script>
-<script id="story-data" type="application/json">{story_tree_json}</script>
 </body>
 </html>
 """

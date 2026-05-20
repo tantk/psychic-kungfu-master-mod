@@ -62,6 +62,7 @@ internal static class Cheats
                 ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
                 ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
                 ["auto_wei_tuo"]    = Plugin.CfgAutoWeiTuo.Value,
+                ["map_teleport"]    = Plugin.CfgMapTeleport.Value,
             }
         };
     }
@@ -126,6 +127,7 @@ internal static class Cheats
                 ["freeze_time"]     = Plugin.CfgFreezeTime.Value,
                 ["auto_launch_ui"]  = Plugin.CfgAutoLaunchUi.Value,
                 ["auto_wei_tuo"]    = Plugin.CfgAutoWeiTuo.Value,
+                ["map_teleport"]    = Plugin.CfgMapTeleport.Value,
             }
         };
 
@@ -457,6 +459,7 @@ internal static class Cheats
             case "freeze_time":    Plugin.CfgFreezeTime.Value   = value; break;
             case "auto_launch_ui": Plugin.CfgAutoLaunchUi.Value = value; break;
             case "auto_wei_tuo":   Plugin.CfgAutoWeiTuo.Value   = value; break;
+            case "map_teleport":   Plugin.CfgMapTeleport.Value  = value; break;
             default: return $"unknown toggle '{name}'";
         }
         return $"{name} = {value}";

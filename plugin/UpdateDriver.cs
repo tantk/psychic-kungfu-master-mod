@@ -13,6 +13,8 @@ internal sealed class UpdateDriver : MonoBehaviour
     private int _lastSceneIdx = -999;
     private bool _autoLoadTriggered;
     private float _lastHeartbeat;
+    private float _sceneEnteredAt;
+    private bool _stuckLogged;
 
     private void Awake()    { Plugin.Log.Msg("[Driver] Awake() — Unity instantiated component"); }
     private void OnEnable() { Plugin.Log.Msg("[Driver] OnEnable()"); }
@@ -40,6 +42,19 @@ internal sealed class UpdateDriver : MonoBehaviour
         {
             Plugin.Log.Msg($"[Driver] scene {_lastSceneIdx} → {idx} (frame {_frameCount})");
             _lastSceneIdx = idx;
+            _sceneEnteredAt = now;
+            _stuckLogged = false;
+        }
+
+        // Watchdog: boot (0) and login (1) should pass in seconds. If we stay there
+        // for >60 s, something is wrong — typically the splash → login transition
+        // is hanging on the user's machine (Steam-reverted corlib, broken asset
+        // bundle, GPU driver wedge, etc.). Log loudly once so it stands out.
+        if (!_stuckLogged && idx <= 1 && (now - _sceneEnteredAt) > 60f)
+        {
+            _stuckLogged = true;
+            Plugin.Log.Error($"[Driver] STUCK at scene {idx} for {now - _sceneEnteredAt:F0}s — game failed to leave boot/login. " +
+                             "Check Latest.log above for game-side exceptions. Common causes: reverted corlib, asset bundle corruption, game updated past mod compatibility.");
         }
 
         // 1. Drain queued main-thread work from pipe handlers

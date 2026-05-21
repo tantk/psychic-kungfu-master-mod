@@ -191,6 +191,28 @@ Most likely your `version.dll` from MelonLoader isn't being loaded. Make sure `v
 
 If Windows SmartScreen blocks the unsigned `version.dll`, right-click it → Properties → check "Unblock" at the bottom.
 
+### "Black screen after splash / studio logo / Unity logo"
+
+If the game shows the noise / studio / anti-piracy / Unity intros normally and then **freezes on a black screen** before reaching the login menu, check for a stray `doorstop_config.ini` in your game folder:
+
+```
+C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\doorstop_config.ini
+```
+
+This file is **not** shipped by JinGu Cheats. It's a leftover from:
+- An older MelonLoader install (≤ v0.5.x — newer versions embed the config inside `version.dll`)
+- A previous BepInEx or other Unity Doorstop-based mod on this game
+- A previous modding tool you tried
+
+When present, Unity Doorstop reads it instead of MelonLoader's embedded config and the injector silently bails out, hanging the game at the splash → login transition.
+
+**Fix:** if you don't have another active Doorstop-based mod on this game, delete the file:
+```
+del "C:\Program Files (x86)\Steam\steamapps\common\JinGu\JinGu\doorstop_config.ini"
+```
+
+The `JinGu-Doctor.bat` shipped in `Mods\` will flag this automatically (see [issue #1](https://github.com/tantk/psychic-kungfu-master-mod/issues/1) for the original debug log).
+
 ### "Cheats do nothing"
 
 You probably loaded a save when the plugin wasn't running. The leader card in the UI should show your character's name and money — if it shows "尚未载入存档", the plugin can't see your save. Save the game, close it fully, relaunch through Steam.

@@ -252,12 +252,13 @@ internal static class Cheats
         {
             var wd = kv.Value;
             int currentLv = save.GetWuXueLv(wd.m_id);
-            if (currentLv >= wd.m_lvMax) continue;
+            if (currentLv <= 0) continue;                  // skip unlearned (matches "已学武学一键满级")
+            if (currentLv >= wd.m_lvMax) continue;         // skip already maxed
             int totalExpNeeded = wd.m_lvMax * wd.m_exp;
             save.AddWuXueExp(wd.m_id, totalExpNeeded, needTips: false);
             count++;
         }
-        return $"maxed {count} wuxue skills";
+        return $"maxed {count} learned wuxue skill(s)";
     }
 
     // Rolling log of what auto-委托 has collected — surfaced to the UI so the player

@@ -62,6 +62,32 @@ Status-Line $mlOk "MelonLoader bootstrap" $(if (-not $mlOk) { "install MelonLoad
 $patchOk = Test-Path $ml
 Status-Line $patchOk "MelonLoader patches folder" $(if (-not $patchOk) { "$ml missing — reinstall MelonLoader" })
 
+# --- Stale Unity Doorstop config (xyzsesame's issue #1) ---
+# MelonLoader v0.6+ embeds its bootstrap config inside version.dll. If a legacy
+# doorstop_config.ini exists in the game folder, Unity Doorstop reads it instead
+# of the embedded config and can hang the game at the splash screen. The file is
+# NOT shipped by us — it's a leftover from old MelonLoader (≤ 0.5.x), BepInEx,
+# or another Doorstop-based mod the user installed previously. We refuse to
+# delete it automatically because it might belong to a different mod the user
+# still wants — but we flag it loudly.
+$doorstopIni = "$gameDir\doorstop_config.ini"
+if (Test-Path $doorstopIni) {
+    Status-Line $false "Stale doorstop_config.ini detected" "this likely blocks MelonLoader on launch"
+    Write-Host ""
+    Write-Host "    Found:  $doorstopIni" -ForegroundColor Yellow
+    Write-Host "    This file is NOT shipped by JinGu Cheats. It's a leftover from an" -ForegroundColor DarkGray
+    Write-Host "    older MelonLoader (≤ v0.5.x), BepInEx, or another Doorstop-based mod." -ForegroundColor DarkGray
+    Write-Host "    On launch, Unity Doorstop reads it instead of MelonLoader's embedded" -ForegroundColor DarkGray
+    Write-Host "    config, which can hang the game at the splash screen (issue #1)." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "    If you don't have another active Doorstop-based mod on this game," -ForegroundColor Yellow
+    Write-Host "    delete the file manually:" -ForegroundColor Yellow
+    Write-Host "      del `"$doorstopIni`"" -ForegroundColor Cyan
+    Write-Host ""
+} else {
+    Status-Line $true "No stale doorstop_config.ini"
+}
+
 Write-Host ""
 Write-Host "  Patched Mono runtime (corlibs that Steam reverts every few weeks):" -ForegroundColor DarkGray
 

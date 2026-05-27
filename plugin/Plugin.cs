@@ -14,7 +14,7 @@ namespace JinGuCheats;
 public class Plugin : MelonMod
 {
     public const string PluginName    = "JinGu Cheats";
-    public const string PluginVersion = "0.2.1";
+    public const string PluginVersion = "0.2.2";
 
     internal static MelonLogger.Instance Log = null!;
 
